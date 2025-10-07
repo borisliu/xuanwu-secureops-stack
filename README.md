@@ -26,16 +26,16 @@
 
 ```mermaid
 graph TD
-    U1[外部访问用户] --> VPN[VPN + 防火墙(OPNsense)]
+    U1[外部访问用户] --> VPN[VPN 防火墙 OPNsense]
     VPN --> BH[JumpServer 堡垒机]
     BH --> K8s[KubeSphere / Kubernetes]
 
-    subgraph K8s 集群
+    subgraph "K8s 集群"
         subgraph 存储
             LH[Longhorn 分布式存储]
         end
 
-        subgraph 数据与安全
+        subgraph "数据与安全"
             FE[Doris FE]
             BE[Doris BE]
             WZ[Wazuh 安全检测]
