@@ -25,7 +25,7 @@
 ## 🧱 系统架构
 
 ```mermaid
-flowchart TD
+graph TD
     U1[外部访问用户] --> VPN[VPN + 防火墙(OPNsense)]
     VPN --> BH[JumpServer 堡垒机]
     BH --> K8s[KubeSphere / Kubernetes]
