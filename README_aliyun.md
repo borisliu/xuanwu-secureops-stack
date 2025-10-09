@@ -29,7 +29,7 @@ end
 
 BH --> ACK[阿里云ACK(托管K8s集群)]
 
-subgraph ACK 集群
+subgraph ACK_Cluster
     QL[青龙 定时任务/采集脚本]
     DF[Dify AI分析工作流]
     OUT[出站代理 (调用宜搭API)]
