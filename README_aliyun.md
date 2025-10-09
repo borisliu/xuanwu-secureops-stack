@@ -27,20 +27,20 @@ subgraph 访问安全层
     VPN --> BH[阿里云堡垒机 Bastionhost]
 end
 
-BH --> ACK[阿里云ACK(托管K8s集群)]
+BH --> ACK[阿里云ACK托管K8s集群]
 
 subgraph ACK_Cluster
     QL[青龙 定时任务/采集脚本]
     DF[Dify AI分析工作流]
-    OUT[出站代理 (调用宜搭API)]
+    OUT[出站代理 调用宜搭API]
 end
 
 ACK --> NAS[(NAS/云盘)]
 ACK --> OSS[(OSS归档)]
 
 subgraph 托管安全服务
-    EDR[阿里云安全中心(EDR)]
-    SAS[态势感知(Security Center)]
+    EDR[阿里云安全中心EDR]
+    SAS[态势感知Security Center]
     SLS[日志服务SLS]
     ADB[(AnalyticDB for MySQL)]
 end
