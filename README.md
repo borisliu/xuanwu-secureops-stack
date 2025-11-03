@@ -9,9 +9,9 @@
 
 ## 🚀 项目简介
 
-**Xuanwu SecureOps Stack（玄武云盾）** 是一个开源的安全私有云与SOC一体化平台，  
-结合 **KubeSphere + Longhorn + Apache Doris + Wazuh + 雷石 + Dify + JumpServer + 钉钉/宜搭**，  
-提供从 **数据采集 → 安全检测 → 智能分析 → 可视化协作** 的全链路能力。
+**Xuanwu SecureOps Stack（玄武云盾）** 是一个开源的安全私有云与SOC一体化平台，
+结合 **KubeSphere + Longhorn + Apache Doris + Wazuh + 雷石 + Dify + Vanna.ai 2.0 + 腾讯 WeKnora + JumpServer + 钉钉/宜搭**，
+提供从 **数据采集 → 安全检测 → 智能分析 → 数据洞察 → 知识问答 → 可视化协作** 的全链路能力。
 
 ### 🌟 核心目标
 - 🔁 **自动化运维**：一键安装、升级、迁移、启停脚本化；
@@ -45,10 +45,14 @@ graph TD
         subgraph 应用层
             QL[青龙 定时采集脚本]
             DF[Dify 智能分析]
+            VNA[Vanna.ai 2.0 数据统计分析]
+            WEK[腾讯 WeKnora 知识库问答]
             OUT[出站代理 → 宜搭 API]
         end
     end
 
+    DF --> VNA
+    DF --> WEK
     BE --> DF --> OUT --> YD[宜搭/钉钉 可视化看板]
     WZ --> LS --> BE
 ```
@@ -66,6 +70,8 @@ graph TD
 | 安全检测 | **Wazuh** | 主机/终端检测、规则/合规检测 |
 | 威胁情报 | **雷石 SIEM** | 日志关联分析、威胁情报集成 |
 | 智能分析 | **Dify** | AI 报告、自动摘要与态势感知 |
+| 数据洞察 | **Vanna.ai 2.0** | SQL 驱动的数据统计与分析插件 |
+| 知识库问答 | **腾讯 WeKnora** | 私域知识库管理与问答协作 |
 | 防护体系 | **JumpServer + OPNsense + VPN** | 堡垒机、访问控制、防火墙、加密通道 |
 | 展示协作 | **宜搭 + 钉钉** | 安全事件工单、可视化看板 |
 
@@ -83,7 +89,7 @@ chmod +x scripts/install.sh
 ```
 
 - 默认部署组件：
-  - KubeSphere, Longhorn, Doris, Wazuh, 雷石, Dify, JumpServer
+  - KubeSphere, Longhorn, Doris, Wazuh, 雷石, Dify, Vanna.ai 2.0, 腾讯 WeKnora, JumpServer
 - 日志与监控默认接入：Loki + Prometheus
 - 所有配置位于 `configs/values/*.yaml`
 
@@ -109,7 +115,8 @@ chmod +x scripts/install.sh
 - 🧠 **安全检测**：Wazuh 检测系统与容器异常行为  
 - 🛰️ **威胁情报**：雷石接入本地/国家级威胁情报源  
 - 🔄 **日志留痕**：所有操作统一汇总 Doris 与 Loki  
-- 📈 **AI 辅助分析**：Dify 结合大模型生成安全报告  
+- 📈 **AI 辅助分析**：Dify 联动 Vanna.ai 2.0 生成数据洞察与安全报告
+- 📚 **知识库赋能**：腾讯 WeKnora 管理问答知识库支持安全协作
 
 ---
 
@@ -152,5 +159,6 @@ SecureOps-Stack/
 
 ---
 
-**玄武云盾（Xuanwu SecureOps Stack）**  
+**玄武云盾（Xuanwu SecureOps Stack）**
 > 🐢 以安全为基，以智能为核，以低成本构建可持续演进的私有云安全平台。
+> 📚 借助 Vanna.ai 2.0 与腾讯 WeKnora 打通数据洞察与知识问答闭环。

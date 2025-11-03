@@ -10,8 +10,8 @@
 **玄武云盾（Xuanwu SecureOps Stack）** 是一个开源安全运营与数据分析一体化平台。  
 此版本基于 **阿里云安全生态** 实现全托管部署，无需自建 Wazuh、雷石、Loki、Doris 等复杂组件。
 
-系统通过阿里云 **WAF + VPN + 堡垒机 + 安全中心 + 态势感知 + 日志服务 + ADB + Dify + 钉钉/宜搭**  
-实现了从数据采集 → 日志分析 → 智能报告 → 可视化协作的完整闭环。
+系统通过阿里云 **WAF + VPN + 堡垒机 + 安全中心 + 态势感知 + 日志服务 + ADB + Dify + Vanna.ai 2.0 + 腾讯 WeKnora + 钉钉/宜搭**
+实现了从数据采集 → 日志分析 → 智能报告 → 数据洞察 → 知识问答 → 可视化协作的完整闭环。
 
 ---
 
@@ -32,6 +32,8 @@ BH --> ACK[阿里云ACK托管K8s集群]
 subgraph ACK_Cluster
     QL[青龙 定时任务/采集脚本]
     DF[Dify AI分析工作流]
+    VNA[Vanna.ai 2.0 数据统计分析]
+    WEK[腾讯 WeKnora 知识库问答]
     OUT[出站代理 调用宜搭API]
 end
 
@@ -50,6 +52,8 @@ QL -->|采集数据写入| ADB
 SLS -->|日志加工/投递| ADB
 EDR --> SLS
 SAS --> SLS
+DF --> VNA
+DF --> WEK
 ADB --> DF --> OUT --> DING
 ```
 
@@ -60,12 +64,14 @@ ADB --> DF --> OUT --> DING
 | 层级 | 服务 | 功能定位 |
 |------|------|-----------|
 | **访问安全层** | WAF + VPN 网关 + 堡垒机 | 网络防护、远程接入、运维审计 |
-| **容器运行层** | 阿里云 ACK | 承载自定义服务（青龙、Dify、代理） |
+| **容器运行层** | 阿里云 ACK | 承载自定义服务（青龙、Dify、Vanna.ai 2.0、WeKnora、代理） |
 | **采集层** | 青龙 | 定时采集数据（API/数据库/系统） |
 | **数据分析层** | AnalyticDB for MySQL | 高性能 OLAP 分析引擎 |
 | **日志与安全层** | 日志服务 SLS | 统一日志收集、分析、投递 |
 | **威胁检测层** | 安全中心 (EDR) + 态势感知 (SAS) | 主机防护、漏洞检测、威胁情报 |
-| **AI分析层** | Dify | 智能分析、自然语言报告 |
+| **AI分析层** | Dify | 智能分析、自然语言报告、触发插件编排 |
+| **数据洞察层** | Vanna.ai 2.0 | SQL 辅助的数据统计与图表分析 |
+| **知识库问答层** | 腾讯 WeKnora | 安全知识库管理与问答工作台 |
 | **展示协作层** | 宜搭 / 钉钉 | 告警可视化、工单流转 |
 
 ---
@@ -79,12 +85,13 @@ ADB --> DF --> OUT --> DING
 2️⃣ **日志汇聚层**  
 - 所有日志进入 SLS → 做加工与清洗 → 投递到 ADB。  
 
-3️⃣ **智能分析层**  
-- Dify 通过 SQL 查询 ADB 数据 → 调用大模型生成报告。  
+3️⃣ **智能分析层**
+- Dify 通过 SQL 查询 ADB 数据 → 调用 Vanna.ai 2.0 进行数据统计与可视化洞察。
+- Dify 联动大模型生成结构化安全报告。
 
-4️⃣ **展示协作层**  
-- Dify 输出结果推送到 宜搭 安全看板。  
-- 钉钉机器人推送告警与报告。  
+4️⃣ **展示协作层**
+- Dify 输出结果推送到 宜搭 安全看板，并同步给腾讯 WeKnora 形成知识库问答条目。
+- 钉钉机器人推送告警与报告，WeKnora 提供知识库问答支撑处置。
 
 ---
 
@@ -101,6 +108,7 @@ helm install qinglong ./charts/qinglong
 helm install dify ./charts/dify
 helm install outbound ./charts/outbound
 ```
+- 可选：为 Vanna.ai 2.0 与腾讯 WeKnora 准备独立的 Deployment/Service，并在 Dify 中配置对应的外接连接地址。
 
 ### Step 3: 日志接入
 - 在 SLS 中创建 Project / Logstore；  
@@ -121,8 +129,9 @@ CREATE TABLE sec_events (
 
 ### Step 5: Dify 连接 ADB
 - 配置 MySQL 数据源（ADB 连接串）；
-- 编排 SQL → LLM → 输出卡片 的工作流；
-- 输出数据写入宜搭表或钉钉机器人。
+- 编排 SQL → Vanna.ai 2.0 → LLM → 输出卡片 的工作流；
+- 输出数据写入宜搭表或钉钉机器人，并同步推送至腾讯 WeKnora 知识库。
+- 在 Dify 中配置 WeKnora API/凭证，实现知识问答与工作台联动。
 
 ---
 
@@ -147,8 +156,9 @@ CREATE TABLE sec_events (
 |------|------|
 | 🧱 架构轻量 | 无需自建 Wazuh/雷石/Doris |
 | 🔒 安全可靠 | 全托管安全中心 + WAF + VPN |
-| 🧠 智能分析 | ADB + Dify 自动生成安全报告 |
+| 🧠 智能分析 | ADB + Dify + Vanna.ai 2.0 自动生成数据洞察与安全报告 |
 | 📊 可视化 | 宜搭/钉钉 工单+看板一体化 |
+| 📚 知识沉淀 | 腾讯 WeKnora 持续积累安全问答知识库 |
 | ⚙️ 易维护 | 云上服务运维自动化 |
 | 🔁 可迁移 | 保留 K8s 架构，可平滑回私有云 |
 
@@ -164,6 +174,8 @@ CREATE TABLE sec_events (
 | NAS 存储 | 500GB 起步 |
 | EDR + SAS | 默认启用全局检测 |
 | Dify | 2C4G 容器即可 |
+| Vanna.ai 2.0 | 2C4G 容器（或云托管服务） |
+| 腾讯 WeKnora | SaaS 集成，建议专线或 VPN 访问 |
 | 宜搭/钉钉 | SaaS 集成 |
 
 ---
@@ -171,7 +183,7 @@ CREATE TABLE sec_events (
 ## 🧩 一句话总结
 
 > **玄武云盾 · 阿里云安全原生版（Xuanwu SecureOps Stack · Apsara Edition）**  
-> 以阿里云 **WAF + VPN + 堡垒机 + EDR + 态势感知 + SLS + ADB + Dify + 钉钉/宜搭**  
+> 以阿里云 **WAF + VPN + 堡垒机 + EDR + 态势感知 + SLS + ADB + Dify + Vanna.ai 2.0 + 腾讯 WeKnora + 钉钉/宜搭**
 > 打造一个 **零自建、零暴露、智能化、安全可视化** 的云上安全运营与分析平台。
 
 ---
@@ -188,5 +200,6 @@ CREATE TABLE sec_events (
 
 ---
 
-**玄武云盾 Xuanwu SecureOps Stack**  
+**玄武云盾 Xuanwu SecureOps Stack**
 > 🐢 安全为基 · 智能为核 · 以低成本构建可持续演进的云上安全平台。
+> 📚 联动 Vanna.ai 2.0 与腾讯 WeKnora，沉淀安全数据洞察与知识问答资产。
