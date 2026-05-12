@@ -9,9 +9,11 @@
 
 ## 🚀 项目简介
 
-**Xuanwu SecureOps Stack（玄武云盾）** 是一个开源的安全私有云与SOC一体化平台，
+**Xuanwu SecureOps Stack（玄武云盾）** 是一个开源的安全私有云与 SOC 一体化平台愿景：
 结合 **KubeSphere + Longhorn + Apache Doris + Wazuh + 雷石 + Dify + Vanna.ai 2.0 + 腾讯 WeKnora + JumpServer + 钉钉/宜搭**，
-提供从 **数据采集 → 安全检测 → 智能分析 → 数据洞察 → 知识问答 → 可视化协作** 的全链路能力。
+规划从 **数据采集 → 安全检测 → 智能分析 → 数据洞察 → 知识问答 → 可视化协作** 的全链路能力。
+
+**当前仓库落地方式**：按子项目分阶段推进，**第一期从「企业 VPN 开源替代」工程化选型测试开始**（见 [`VPN/README.md`](VPN/README.md) 与根目录 [`TODO.md`](TODO.md)）。全栈一键部署脚本与 Helm 物料在后续阶段随组件落地逐步补齐；在此之前以文档、测试记录与选型结论沉淀为主。
 
 ### 🌟 核心目标
 - 🔁 **自动化运维**：一键安装、升级、迁移、启停脚本化；
@@ -19,6 +21,16 @@
 - 🔒 **多层防护体系**：VPN、堡垒机、防火墙三重防线；
 - 📊 **统一可视化**：SOC 告警、数据分析、运维指标统一展示；
 - 🔧 **持续演进**：组件全部容器化，Helm + ArgoCD 支撑持续升级。
+
+### 📌 分阶段推进与当前入口
+
+| 阶段 | 子项目 | 状态 | 入口 |
+|------|--------|------|------|
+| **P0** | 企业 VPN 开源替代（SoftEther / OPNsense / NetBird） | **当前推荐从这里开始** | [`VPN/README.md`](VPN/README.md)、[`TODO.md`](TODO.md) |
+| P1 | 边界访问加固（防火墙 / 堡垒机 / 统一身份衔接） | 规划中 | 见下文架构中的 JumpServer、OPNsense 位 |
+| P2 | K8s 数据与安全栈（KubeSphere、Wazuh、Doris 等） | 规划中 | 本文后续章节与将来 `manifests/`、`scripts/` |
+
+**执行顺序**：打开 [`TODO.md`](TODO.md) 按步骤勾选；技术细则、用例与评分模板以 [`VPN/README.md`](VPN/README.md) 为准。
 
 ---
 
@@ -87,31 +99,40 @@ graph TD
 
 ---
 
-## ⚡ 快速开始（5 分钟体验）
+## ⚡ 快速开始
 
-> 仅用于验证部署，生产环境请参考完整部署步骤。
+### 当前阶段（P0：VPN 选型测试）
+
+1. 克隆本仓库并进入目录。  
+2. 阅读 [`VPN/README.md`](VPN/README.md) 中的测试目标、环境建议（含 **3.3 部署形态与工程评价**）。  
+3. 跟随根目录 [`TODO.md`](TODO.md) **逐步勾选**，在 `VPN/softether/`、`VPN/opnsense/`、`VPN/netbird/` 下补齐安装、配置、测试与结果文档。  
+
+### 全栈愿景版（后续阶段）
+
+> 以下命令对应完整 SOC 私有云栈，**在仓库中脚本与 Chart 尚未齐备前仅作目标参考**；落地顺序仍以 P0 → P1 → P2 为准。
 
 ```bash
 # 1. 克隆仓库
 git clone https://github.com/your-org/xuanwu-secureops-stack.git
 cd xuanwu-secureops-stack
 
-# 2. 配置最小环境变量
-cp .env.example .env
-# 编辑 .env，填入必要的连接信息
+# 2. 配置最小环境变量（待提供 .env.example 时启用）
+# cp .env.example .env
 
-# 3. 一键部署（开发模式）
-make dev-deploy
-# 或直接运行: ./scripts/install.sh --dev
+# 3. 一键部署（开发模式，待 scripts/ 就绪后启用）
+# make dev-deploy
+# 或: ./scripts/install.sh --dev
 ```
-
-> 💡 提示：开发模式使用本地存储，不依赖云服务，适合本地测试。
 
 ---
 
 ## 📋 前置条件
 
-### 系统要求
+### P0（当前：VPN 选型测试）
+
+以 [`VPN/README.md`](VPN/README.md) **§3 测试环境建议** 为准：x86 虚拟化（如 Proxmox / ESXi）、测试 VM、多类客户端与可选日志/身份平台即可，**不要求**先具备下文中的生产级 Kubernetes 集群。
+
+### 全栈目标环境（P2 及以后）
 - **Kubernetes**：v1.20+（推荐 v1.24+）
 - **Helm**：v3.8+
 - **存储**：至少 100GB 可用空间（Longhorn 分布式存储）
@@ -317,13 +338,20 @@ kubectl create secret generic db-credentials \
 ## 🧱 目录结构
 
 ```
-SecureOps-Stack/
-├── docs/                  # 架构、安装、日志、迁移等文档
-├── manifests/             # 各组件的 Helm / YAML 模板
-├── scripts/               # 安装、升级、备份、启停脚本
-├── configs/               # values.yaml、认证配置、监控规则
-└── .github/workflows/     # 自动化部署 CI/CD
+xuanwu-secureops-stack/
+├── VPN/                   # P0：企业 VPN 开源替代工程化测试（方案、用例、各产品记录）
+├── TODO.md                # P0 执行清单：按步骤完成测试与文档沉淀
+├── README.md              # 玄武云盾总览（本文件）
+├── README_aliyun.md       # 阿里云等部署变体说明（如有）
+├── LICENSE
+├── docs/                  # （规划中）架构、安装、迁移等文档
+├── manifests/             # （规划中）各组件 Helm / YAML
+├── scripts/               # （规划中）安装、升级、备份、启停脚本
+├── configs/               # （规划中）values、认证、监控规则
+└── .github/workflows/     # （规划中）CI/CD
 ```
+
+当前仓库已包含 **P0（`VPN/` + `TODO.md`）**；其余目录随全栈落地逐步添加。
 
 ---
 
@@ -335,10 +363,18 @@ SecureOps-Stack/
 
 ## 🧠 社区与路线图
 
-- ✅ **v1.0** 基础版（可部署可用）  
-- 🔄 **v1.1** 增加可视化监控与安全态势看板  
-- 🧠 **v1.2** 集成国产大模型接口（智谱、通义、文心）  
-- 🔐 **v1.3** 增强 SOAR 自动响应与安全审计链  
+**落地顺序（与「分阶段推进」一致）**
+
+- **P0（进行中）**：VPN 开源替代选型测试 → 输出 `VPN/*/test-result.md` 与 `report/final-report.md`（见 [`TODO.md`](TODO.md)）。  
+- **P1**：边界与访问（OPNsense 定型、JumpServer、统一身份）与 P0 结论衔接。  
+- **P2**：K8s 上数据与安全栈（Wazuh、Doris、Dify 等）按上文架构扩展。  
+
+**版本愿景（全栈成熟后）**
+
+- **v1.0** 基础版（可部署可用）  
+- **v1.1** 增加可视化监控与安全态势看板  
+- **v1.2** 集成国产大模型接口（智谱、通义、文心）  
+- **v1.3** 增强 SOAR 自动响应与安全审计链  
 
 欢迎参与贡献，共建国产安全生态。  
 > GitHub Issues / Discussions 将用于需求征集与社区共创。  
