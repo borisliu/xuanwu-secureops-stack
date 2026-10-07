@@ -1,475 +1,1249 @@
-# 🐢 Xuanwu SecureOps Stack （玄武云盾）
+# 玄武云盾 Xuanwu SecureOps Stack
 
-**一个基于开源组件的低成本、安全、可扩展的私有云与安全运营中心（SOC）一体化平台。**
+> **AI-Native Enterprise Private Cloud & Secure Operations Platform**
+>
+> 由 AI 协助建设、运维、审计和持续演进的企业级私有云平台。
 
-> 🏢 适用于：政企、国企、运营商、科研机构  
-> 💡 特点：私有化部署 · 可持续升级 · 可审计可视化 · 无需公网依赖  
+------------------------------------------------------------------------
 
----
+## 1. 项目定位
 
-## 🚀 项目简介
+**玄武云盾（Xuanwu SecureOps Stack）** 是一个面向企业内部业务系统的 AI
+原生私有云平台项目。
 
-**Xuanwu SecureOps Stack（玄武云盾）** 是一个开源的安全私有云与 SOC 一体化平台愿景：
-结合 **KubeSphere + Longhorn + Apache Doris + Wazuh + 雷石 + Dify + Vanna.ai 2.0 + 腾讯 WeKnora + JumpServer + 钉钉/宜搭**，
-规划从 **数据采集 → 安全检测 → 智能分析 → 数据洞察 → 知识问答 → 可视化协作** 的全链路能力。
+项目的目标不是简单搭建一套
+Kubernetes，也不是简单部署一套安全产品，而是建设一个：
 
-**当前仓库落地方式**：按子项目分阶段推进，**第一期从「企业 VPN 开源替代」工程化选型测试开始**（见 [`VPN/README.md`](VPN/README.md) 与根目录 [`TODO.md`](TODO.md)）。全栈一键部署脚本与 Helm 物料在后续阶段随组件落地逐步补齐；在此之前以文档、测试记录与选型结论沉淀为主。
+-   安全
+-   可控
+-   可审计
+-   可恢复
+-   可持续演进
+-   可自动化运维
+-   可由 AI 辅助长期维护
 
-### 🌟 核心目标
-- 🔁 **自动化运维**：一键安装、升级、迁移、启停脚本化；
-- 🧠 **智能安全分析**：AI 自动生成告警摘要、安全周报；
-- 🔒 **多层防护体系**：VPN、堡垒机、防火墙三重防线；
-- 📊 **统一可视化**：SOC 告警、数据分析、运维指标统一展示；
-- 🔧 **持续演进**：组件全部容器化，Helm + ArgoCD 支撑持续升级。
+的企业级业务承载平台。
 
-### 📌 分阶段推进与当前入口
+玄武云盾首先承载 **DA-SOC**，随后随着 DA-SOC
+以及其他业务系统的发展持续演进，最终形成企业统一的私有云与安全运营底座。
 
-| 阶段 | 子项目 | 状态 | 入口 |
-|------|--------|------|------|
-| **P0** | 企业 VPN 开源替代（SoftEther / OPNsense / NetBird） | **当前推荐从这里开始** | [`VPN/README.md`](VPN/README.md)、[`TODO.md`](TODO.md) |
-| P1 | 边界访问加固（防火墙 / 堡垒机 / 统一身份衔接） | 规划中 | 见下文架构中的 JumpServer、OPNsense 位 |
-| P2 | K8s 数据与安全栈（KubeSphere、Wazuh、Doris 等） | 规划中 | 本文后续章节与将来 `manifests/`、`scripts/` |
+------------------------------------------------------------------------
 
-**执行顺序**：打开 [`TODO.md`](TODO.md) 按步骤勾选；技术细则、用例与评分模板以 [`VPN/README.md`](VPN/README.md) 为准。
+## 2. 项目背景
 
----
+企业内部缺少成熟、专职的 Kubernetes / 云原生运维团队。
 
-## 📦 版本信息
+因此，本项目不以"培养少数几个专家依赖个人经验维护平台"为目标，而是采用
+**AI-Native Platform Operations** 思路：
 
-- **当前版本**：v1.0.0
-- **发布日期**：2024-XX-XX
-- **支持的 Kubernetes 版本**：1.20 - 1.28
-- **支持的 Helm 版本**：3.8+
-- **最新更新**：查看 [CHANGELOG.md](CHANGELOG.md)（如存在）
+> **人定义目标、规则和高风险决策；AI
+> 负责分析、规划、执行、验证、审计和持续维护。**
 
----
+平台必须尽量做到：
 
-## 🧱 系统架构
+> **即使没有某个专家长期驻场，其他人员也能够按照文档、策略、Runbook 和
+> AI Agent 的指导完成标准化运维。**
 
-```mermaid
-graph TD
-    U1[外部访问用户] --> VPN[VPN 防火墙 OPNsense]
-    VPN --> BH[JumpServer 堡垒机]
-    BH --> K8s[KubeSphere / Kubernetes]
+------------------------------------------------------------------------
 
-    subgraph "K8s 集群"
-        subgraph 存储
-            LH[Longhorn 分布式存储]
-        end
+## 3. 最终目标
 
-        subgraph "数据与安全"
-            FE[Doris FE]
-            BE[Doris BE]
-            WZ[Wazuh 安全检测]
-            LS[雷石 SIEM 威胁分析]
-        end
+玄武云盾 V1.0 的最终目标：
 
-        subgraph 应用层
-            QL[青龙 定时采集脚本]
-            DF[Dify 智能分析]
-            VNA[Vanna.ai 2.0 数据统计分析]
-            WEK[腾讯 WeKnora 知识库问答]
-            OUT[出站代理 → 宜搭 API]
-        end
-    end
+> 建设一套能够长期承载企业内部核心业务的私有云平台，并通过 AI
+> 完成绝大部分标准化平台运维、巡检、安全分析、故障处理和持续优化工作；所有高风险操作均具备明确的审批、审计和回滚机制。
 
-    DF --> VNA
-    DF --> WEK
-    BE --> DF --> OUT --> YD[宜搭/钉钉 可视化看板]
-    WZ --> LS --> BE
+最终形成：
+
+``` text
+                           人
+                           │
+                 自然语言 / 目标 / 决策
+                           │
+                           ▼
+                ┌────────────────────┐
+                │ Xuanwu AI Ops      │
+                │      Manager       │
+                └─────────┬──────────┘
+                          │
+             ┌────────────┼────────────┐
+             │            │            │
+          Planner       Executor     Auditor
+             │            │            │
+             └────────────┼────────────┘
+                          │
+                    Policy / Guard
+                          │
+                          ▼
+                ┌────────────────────┐
+                │ Xuanwu Platform    │
+                └─────────┬──────────┘
+                          │
+          ┌───────────────┼────────────────┐
+          │               │                │
+      Infrastructure   Security          Data
+          │               │                │
+          └───────────────┼────────────────┘
+                          │
+                    Business Apps
+                          │
+                    ┌─────┴─────┐
+                    │  DA-SOC   │
+                    └───────────┘
 ```
 
----
+------------------------------------------------------------------------
 
-## 🧩 核心组件
+## 4. 核心理念
 
-| 模块 | 组件 | 功能 |
-|------|------|------|
-| 容器编排 | **KubeSphere** | 可视化 K8s 管理、CI/CD、监控告警 |
-| 分布式存储 | **Longhorn** | 高可用块存储、快照与备份 |
-| 数据分析 | **Apache Doris** | 高性能 OLAP，日志与分析查询引擎 |
-| 调度任务 | **青龙** | 定时数据采集、脚本化调度 |
-| 安全检测 | **Wazuh** | 主机/终端检测、规则/合规检测 |
-| 威胁情报 | **雷石 SIEM** | 日志关联分析、威胁情报集成 |
-| 智能分析 | **Dify** | AI 报告、自动摘要与态势感知 |
-| 数据洞察 | **Vanna.ai 2.0** | SQL 驱动的数据统计与分析插件 |
-| 知识库问答 | **腾讯 WeKnora** | 私域知识库管理与问答协作 |
-| 防护体系 | **JumpServer + OPNsense + VPN** | 堡垒机、访问控制、防火墙、加密通道 |
-| 展示协作 | **宜搭 + 钉钉** | 安全事件工单、可视化看板 |
+### 4.1 Goal-Driven
 
----
+先定义最终目标，再由 Agent 将目标拆解成可执行、可验证的任务。
 
-## ⚡ 快速开始
-
-### 当前阶段（P0：VPN 选型测试）
-
-1. 克隆本仓库并进入目录。  
-2. 阅读 [`VPN/README.md`](VPN/README.md) 中的测试目标、环境建议（含 **3.3 部署形态与工程评价**）。  
-3. 跟随根目录 [`TODO.md`](TODO.md) **逐步勾选**，在 `VPN/softether/`、`VPN/opnsense/`、`VPN/netbird/` 下补齐安装、配置、测试与结果文档。  
-
-### 全栈愿景版（后续阶段）
-
-> 以下命令对应完整 SOC 私有云栈，**在仓库中脚本与 Chart 尚未齐备前仅作目标参考**；落地顺序仍以 P0 → P1 → P2 为准。
-
-```bash
-# 1. 克隆仓库
-git clone https://github.com/your-org/xuanwu-secureops-stack.git
-cd xuanwu-secureops-stack
-
-# 2. 配置最小环境变量（待提供 .env.example 时启用）
-# cp .env.example .env
-
-# 3. 一键部署（开发模式，待 scripts/ 就绪后启用）
-# make dev-deploy
-# 或: ./scripts/install.sh --dev
+``` text
+Goal
+ ↓
+Plan
+ ↓
+Execute
+ ↓
+Verify
+ ↓
+Operate
+ ↓
+Improve
 ```
 
----
+------------------------------------------------------------------------
 
-## 📋 前置条件
+### 4.2 AI-Native Operations
 
-### P0（当前：VPN 选型测试）
+AI 不是辅助写几条命令，而是逐步成为平台的日常运维力量。
 
-以 [`VPN/README.md`](VPN/README.md) **§3 测试环境建议** 为准：x86 虚拟化（如 Proxmox / ESXi）、测试 VM、多类客户端与可选日志/身份平台即可，**不要求**先具备下文中的生产级 Kubernetes 集群。
+AI 应能够：
 
-### 全栈目标环境（P2 及以后）
-- **Kubernetes**：v1.20+（推荐 v1.24+）
-- **Helm**：v3.8+
-- **存储**：至少 100GB 可用空间（Longhorn 分布式存储）
-- **网络**：内网带宽建议 ≥ 100Mbps
-- **硬件资源**：至少 3 节点，每节点 8C32G
+-   发现问题
+-   分析问题
+-   查询上下文
+-   读取平台知识
+-   生成处理计划
+-   执行标准操作
+-   验证执行结果
+-   创建待办
+-   通知负责人
+-   记录变更
+-   更新知识
+-   进行复盘
 
-### 权限要求
-- Kubernetes 集群管理员权限
-- 命名空间创建权限（默认使用 `xuanwu` 命名空间）
-- 钉钉/宜搭管理员权限（如需 SSO 集成）
+------------------------------------------------------------------------
 
-### 部署前检查清单
+### 4.3 Human-in-the-Loop
 
-- [ ] Kubernetes 集群版本符合要求（v1.20+）
-- [ ] Helm 已安装（v3.8+）
-- [ ] 存储类（StorageClass）已配置
-- [ ] 网络策略允许必要流量
-- [ ] 权限配置正确（集群 RBAC）
-- [ ] 域名/证书准备（如需 HTTPS）
-- [ ] 备份策略已规划
+AI 不拥有无限权限。
 
----
+根据风险等级，将操作划分为：
 
-## ⚙️ 快速部署
+#### L0：自动执行
 
-> 所有组件基于 Helm Chart，可一键部署。
+例如：
 
-```bash
-git clone https://github.com/your-org/xuanwu-secureops-stack.git
-cd xuanwu-secureops-stack
-chmod +x scripts/install.sh
-./scripts/install.sh
+-   查询状态
+-   健康检查
+-   日志查询
+-   资源统计
+-   漏洞扫描
+-   证书检查
+-   生成报告
+
+#### L1：受策略约束自动执行
+
+例如：
+
+-   重启异常 Pod
+-   非生产环境扩容
+-   清理明确判定为无用的资源
+-   修复低风险配置问题
+
+#### L2：必须人工批准
+
+例如：
+
+-   修改生产网络策略
+-   修改 RBAC
+-   删除节点
+-   升级 Kubernetes
+-   修改存储
+-   修改核心网络
+-   删除生产数据
+-   关闭安全控制
+-   影响业务连续性的操作
+
+------------------------------------------------------------------------
+
+### 4.4 Multi-Agent Audit
+
+重要操作不能完全依赖单 Agent。
+
+对于高风险或复杂任务，可以采用：
+
+``` text
+Planner
+   ↓
+Security Agent
+   ↓
+Reliability Agent
+   ↓
+Policy Auditor
+   ↓
+Executor
+   ↓
+Verifier
 ```
 
-- 默认部署组件：
-  - KubeSphere, Longhorn, Doris, Wazuh, 雷石, Dify, Vanna.ai 2.0, 腾讯 WeKnora, JumpServer
-- 日志与监控默认接入：Loki + Prometheus
-- 所有配置位于 `configs/values/*.yaml`
+不同 Agent 从不同角度进行交叉审计，降低单一 Agent 的知识盲区和误判风险。
 
-### 配置示例
+------------------------------------------------------------------------
 
-#### Dify 配置（`configs/dify/values.yaml`）
-```yaml
-database:
-  type: mysql
-  host: doris-fe-service
-  port: 9030
-  user: root
-  password: ""  # 建议使用 Secret
+### 4.5 Policy First
 
-api:
-  baseUrl: http://dify-service:5001
-  
-workflow:
-  vanna:
-    endpoint: http://vanna-service:8000
-  weknora:
-    endpoint: http://weknora-service:8080
-    apiKey: ""  # 建议使用 Secret
+所有重要操作都必须遵循平台政策。
+
+``` text
+Request
+ ↓
+Architecture
+ ↓
+Policy
+ ↓
+Risk Evaluation
+ ↓
+Approval
+ ↓
+Execution
+ ↓
+Verification
+ ↓
+Audit
 ```
 
-#### 青龙任务配置示例（`configs/qinglong/tasks.json`）
-```json
-{
-  "name": "采集安全事件",
-  "command": "python /scripts/collect_security_events.py",
-  "schedule": "0 */1 * * *",
-  "env": {
-    "DORIS_HOST": "doris-fe-service",
-    "DORIS_DB": "security_db"
-  }
-}
+不能依赖个人经验决定生产平台行为。
+
+------------------------------------------------------------------------
+
+### 4.6 Everything Is Auditable
+
+平台应尽可能记录：
+
+-   谁提出请求
+-   哪个 Agent 分析
+-   使用了哪些证据
+-   得出了什么结论
+-   执行了什么操作
+-   操作前状态
+-   操作后状态
+-   谁批准
+-   谁审计
+-   是否成功
+-   是否回滚
+
+------------------------------------------------------------------------
+
+### 4.7 Everything Important Should Be Reversible
+
+对于重要变更，应优先设计：
+
+-   Backup
+-   Snapshot
+-   Rollback
+-   Version Control
+-   Git History
+-   Change Record
+
+不能把"恢复"作为出问题后的临时行为。
+
+------------------------------------------------------------------------
+
+## 5. 核心能力域
+
+玄武云盾最终包含以下能力域：
+
+``` text
+Xuanwu SecureOps Stack
+│
+├── 01 Infrastructure
+├── 02 Kubernetes Platform
+├── 03 Network & Access
+├── 04 Security
+├── 05 Data & Storage
+├── 06 Observability
+├── 07 Operations
+├── 08 Governance
+├── 09 AI Operations
+└── 10 Business Platform
 ```
 
-### 🔐 环境变量配置
+### 5.1 Infrastructure
 
-#### Dify 环境变量
-| 变量名 | 说明 | 示例 |
-|--------|------|------|
-| `DIFY_DB_HOST` | 数据库地址 | `doris-fe-service` |
-| `DIFY_DB_PORT` | 数据库端口 | `9030` |
-| `DIFY_DB_USER` | 数据库用户 | `root` |
-| `DIFY_DB_PASSWORD` | 数据库密码 | `***` |
-| `DIFY_API_BASE_URL` | API 基础地址 | `http://dify-service:5001` |
+负责：
 
-#### 青龙环境变量
-| 变量名 | 说明 | 示例 |
-|--------|------|------|
-| `QL_DORIS_HOST` | Doris 连接地址 | `doris-fe-service` |
-| `QL_DORIS_DB` | 目标数据库名 | `security_db` |
-| `QL_LOG_LEVEL` | 日志级别 | `INFO` |
+-   VM
+-   裸金属
+-   CPU
+-   Memory
+-   Disk
+-   Network
+-   GPU
+-   基础 OS
 
-### 验证部署
+### 5.2 Kubernetes Platform
 
-#### 检查 Pod 状态
-```bash
-kubectl get pods -A | grep -E 'qinglong|dify|wazuh|doris'
+负责：
+
+-   Kubernetes
+-   KubeSphere
+-   CNI
+-   CSI
+-   Ingress
+-   Registry
+-   Namespace
+-   RBAC
+-   Admission / Policy
+
+### 5.3 Network & Access
+
+负责：
+
+-   防火墙
+-   管理网络
+-   业务网络
+-   DMZ
+-   VPN
+-   堡垒机
+-   DNS
+-   NTP
+-   南北向访问
+-   东西向访问
+-   后续 Zero Trust
+
+### 5.4 Security
+
+负责：
+
+-   身份认证
+-   RBAC
+-   Secret
+-   镜像安全
+-   漏洞管理
+-   Endpoint Security / EDR
+-   Runtime Security
+-   网络安全
+-   审计
+-   安全基线
+
+### 5.5 Data & Storage
+
+负责：
+
+-   Kubernetes / etcd
+-   数据库
+-   Redis
+-   ClickHouse
+-   对象存储
+-   持久化存储
+-   Backup
+-   Restore
+-   Disaster Recovery
+
+### 5.6 Observability
+
+负责：
+
+-   Metrics
+-   Logs
+-   Events
+-   Traces
+-   Alerts
+-   Health
+-   Capacity
+
+### 5.7 Operations
+
+负责：
+
+-   Provision
+-   Patch
+-   Upgrade
+-   Backup
+-   Restore
+-   Certificate
+-   Capacity
+-   Incident
+-   Change
+-   Lifecycle
+
+### 5.8 Governance
+
+负责：
+
+-   架构
+-   安全基线
+-   权限
+-   业务边界
+-   IT / 业务职责边界
+-   变更管理
+-   例外管理
+-   资产管理
+-   生命周期管理
+
+### 5.9 AI Operations
+
+负责：
+
+-   AI Planner
+-   AI Executor
+-   AI Auditor
+-   Security Agent
+-   SRE / Operations Agent
+-   Task Center
+-   Incident Response
+-   Knowledge Base
+-   Multi-Agent Audit
+
+### 5.10 Business Platform
+
+负责承载：
+
+-   DA-SOC
+-   DA 体系相关服务
+-   其他企业业务系统
+
+------------------------------------------------------------------------
+
+## 6. 人与 AI 的职责边界
+
+玄武云盾遵循：
+
+> **Human defines Goals and Policies. Agents plan, execute and verify.
+> Humans approve high-risk decisions. Every action is auditable and
+> reversible.**
+
+### 人负责
+
+-   定义最终目标
+-   定义平台政策
+-   确定安全红线
+-   确定业务优先级
+-   批准高风险操作
+-   处理重大例外
+-   处理重大业务决策
+
+### AI 负责
+
+-   信息收集
+-   状态检查
+-   分析
+-   任务拆解
+-   方案生成
+-   标准化执行
+-   结果验证
+-   告警
+-   待办创建
+-   审计
+-   复盘
+-   知识沉淀
+
+------------------------------------------------------------------------
+
+## 7. IT 与业务职责边界
+
+玄武云盾必须明确：
+
+> **IT / 平台团队负责平台稳定性；业务团队负责应用正确性和业务结果。**
+
+### IT / 平台负责
+
+-   基础设施
+-   Kubernetes
+-   KubeSphere
+-   网络
+-   存储
+-   Registry
+-   平台安全
+-   平台监控
+-   平台备份
+-   平台审计
+-   平台生命周期
+
+### 业务负责
+
+-   应用代码
+-   业务逻辑
+-   业务数据
+-   业务配置
+-   业务指标
+-   应用级日志
+-   应用级 SLA
+-   业务连续性要求
+
+### 边界原则
+
+业务团队：
+
+-   不直接修改 Kubernetes 核心组件
+-   不直接修改 Node
+-   不直接修改 CNI
+-   不直接修改集群级 RBAC
+-   不绕过平台安全策略
+-   不自行开放高风险网络访问
+-   不绕过企业镜像仓库
+-   不通过临时手工操作破坏平台状态
+
+特殊需求必须通过平台变更 / 例外流程。
+
+------------------------------------------------------------------------
+
+## 8. 平台安全红线
+
+以下原则属于玄武云盾核心安全红线。
+
+### 管理面
+
+-   Kubernetes API 不直接暴露互联网
+-   etcd 不暴露业务网络或互联网
+-   KubeSphere 管理面只允许授权管理路径访问
+-   高权限账号不得作为普通业务账号使用
+
+### 权限
+
+-   遵循最小权限原则
+-   生产环境禁止无必要的 cluster-admin
+-   ServiceAccount 不得无理由使用高权限
+-   权限申请必须可审计
+
+### 容器
+
+-   默认禁止 privileged
+-   默认禁止 hostNetwork
+-   默认禁止 hostPID / hostIPC
+-   默认禁止不必要的 hostPath
+-   默认使用非 root
+-   必须设置资源 requests / limits
+-   必须配置健康检查
+
+### 网络
+
+-   默认拒绝
+-   明确允许
+-   生产 Namespace 必须具备网络访问边界
+-   禁止业务通过临时方式绕过网络策略
+
+### 镜像
+
+-   生产镜像必须来自企业认可的 Registry
+-   镜像必须经过基本安全检查
+-   禁止直接使用未经审核的未知镜像
+
+### 变更
+
+-   生产核心组件禁止随意手工修改
+-   重要变更必须记录
+-   重大变更必须具备回滚方案
+-   禁止为了临时解决问题永久破坏架构原则
+
+------------------------------------------------------------------------
+
+## 9. 平台的基本运行原则
+
+玄武云盾不依赖"记忆中的配置"。
+
+重要状态必须尽量：
+
+-   文档化
+-   Git 化
+-   自动化
+-   可审计
+-   可验证
+-   可恢复
+
+目标是逐渐形成：
+
+``` text
+Architecture
+     ↓
+Policy
+     ↓
+Configuration
+     ↓
+Automation
+     ↓
+Runtime
+     ↓
+Audit
+     ↓
+Knowledge
 ```
 
-#### 检查服务连通性
-```bash
-# 测试 Dify API
-curl http://dify-service:5001/api/health
+平台实际状态必须尽量与定义状态保持一致。
 
-# 测试 Doris 连接
-mysql -h doris-fe-service -P 9030 -u root -e "SHOW FRONTENDS;"
+------------------------------------------------------------------------
+
+## 10. AI 运维任务模型
+
+所有标准化运维事件最终尽量统一为 Task。
+
+``` text
+Task
+│
+├── ID
+├── Source
+├── Asset
+├── Severity
+├── Description
+├── Evidence
+├── Impact
+├── Proposed Action
+├── Risk
+├── Approval Required
+├── Executor
+├── Auditor
+├── Execution Result
+├── Verification Result
+└── Audit Log
 ```
 
-#### 查看日志
-```bash
-# 查看青龙日志
-kubectl logs -f deployment/qinglong -n xuanwu
+典型 Task：
 
-# 查看 Dify 日志
-kubectl logs -f deployment/dify -n xuanwu
+-   服务器漏洞
+-   EDR 告警
+-   Kubernetes Node 异常
+-   Pod CrashLoopBackOff
+-   CPU / Memory / Disk 异常
+-   证书即将过期
+-   镜像漏洞
+-   RBAC 异常
+-   网络策略异常
+-   Backup 失败
+-   Configuration Drift
+-   Kubernetes 升级
+-   KubeSphere 异常
+
+------------------------------------------------------------------------
+
+## 11. 自动化运维闭环
+
+玄武云盾最终采用：
+
+``` text
+发现
+ ↓
+分析
+ ↓
+生成 Task
+ ↓
+制定方案
+ ↓
+风险评估
+ ↓
+自动执行 / 请求批准
+ ↓
+执行
+ ↓
+验证
+ ↓
+记录
+ ↓
+通知
+ ↓
+知识沉淀
 ```
 
----
+例如：
 
-## 🧰 统一运维规范
-
-| 分类 | 能力 | 实现方式 |
-|------|------|-----------|
-| **部署脚本化** | 一键安装/升级/回滚 | Helm + install.sh |
-| **持续升级** | 自动拉取新版本镜像 | ArgoCD + upgrade.sh |
-| **迁移备份** | 数据卷可迁移 | Longhorn Snapshot/Backup |
-| **启停命令化** | 统一启停控制 | start-all.sh / stop-all.sh |
-| **统一日志** | 运行/登录日志集中采集 | FluentBit + Wazuh + Loki |
-| **身份认证** | 钉钉扫码登录 | OAuth2 Proxy + Dingtalk OIDC |
-| **监控告警** | 集中可视化告警 | Prometheus + 宜搭看板 |
-
----
-
-## 🔒 安全与合规特性
-
-- 🧩 **访问控制**：VPN + 防火墙 + 堡垒机三重防线  
-- 🧠 **安全检测**：Wazuh 检测系统与容器异常行为  
-- 🛰️ **威胁情报**：雷石接入本地/国家级威胁情报源  
-- 🔄 **日志留痕**：所有操作统一汇总 Doris 与 Loki  
-- 📈 **AI 辅助分析**：Dify 联动 Vanna.ai 2.0 生成数据洞察与安全报告
-- 📚 **知识库赋能**：腾讯 WeKnora 管理问答知识库支持安全协作
-
-### 🔒 安全最佳实践
-
-#### 访问控制
-- **最小权限原则**：Kubernetes RBAC 仅授予必要权限
-- **网络隔离**：使用 NetworkPolicy 隔离不同层级服务
-- **白名单机制**：数据库仅允许应用 Pod IP 段访问
-
-#### 密钥管理
-- **使用 Secret**：敏感信息存储在 K8s Secret，不写入代码
-```bash
-# 示例：创建 Secret
-kubectl create secret generic db-credentials \
-  --from-literal=username=root \
-  --from-literal=password=<secure-password> \
-  -n xuanwu
+``` text
+EDR
+ ↓
+告警
+ ↓
+n8n / Event Trigger
+ ↓
+Security Agent
+ ↓
+调查主机 / Pod / 网络 / 日志
+ ↓
+生成安全事件
+ ↓
+创建待办
+ ↓
+钉钉通知
+ ↓
+高风险操作请求人工批准
+ ↓
+Executor 执行
+ ↓
+Verifier 验证
+ ↓
+Audit Agent 审计
 ```
 
-#### 日志审计
-- **操作日志**：所有 K8s API 调用记录在审计日志
-- **访问日志**：VPN、堡垒机访问日志统一汇总至 Doris/Loki
-- **合规存储**：日志保留 180 天（满足等保要求）
+------------------------------------------------------------------------
 
-### 📜 合规性支持
+## 12. n8n 与 Agent 的职责
 
-#### 等保要求
-- ✅ **三级等保**：满足等保三级技术要求
-- ✅ **日志留存**：操作日志保留 ≥ 180 天
-- ✅ **身份认证**：支持钉钉 SSO 统一身份
-- ✅ **访问审计**：堡垒机记录所有运维操作
+n8n 或同类工作流工具主要负责：
 
-#### 数据合规
-- ✅ **数据加密**：传输加密（TLS 1.2+），存储加密（Longhorn 加密）
-- ✅ **数据备份**：每日自动快照，支持异地备份
-- ✅ **数据脱敏**：敏感数据查询支持脱敏（需配置规则）
+-   Scheduler
+-   Webhook
+-   Email
+-   EDR Event
+-   DingTalk
+-   API Integration
+-   Notification
+-   Workflow Trigger
 
----
+它不应该成为整个系统的"大脑"。
 
-## 🎯 典型应用场景
+Agent 负责：
 
-### 场景 1：安全告警自动分析
-1. Wazuh 检测到异常行为 → 推送至雷石 SIEM
-2. 雷石分析后写入 Doris `sec_events` 表
-3. Dify 定时查询新增告警 → 调用 LLM 生成摘要
-4. 结果推送至钉钉群，并更新宜搭看板
+-   理解
+-   判断
+-   规划
+-   执行
+-   验证
+-   审计
 
-### 场景 2：安全周报自动生成
-1. 青龙定时任务（每周一 9:00）触发
-2. Dify 查询 Doris 过去 7 天安全事件
-3. Vanna.ai 2.0 生成统计图表（攻击趋势、Top 威胁）
-4. Dify 调用 LLM 生成结构化周报
-5. 推送至钉钉 + 宜搭，同时录入 WeKnora 知识库
+推荐关系：
 
-### 场景 3：知识库问答辅助处置
-1. 安全分析员在 WeKnora 提问："如何处置挖矿病毒？"
-2. WeKnora 查询知识库返回处置步骤
-3. 如无答案，调用 Dify 生成建议
-4. 将问答结果录入知识库，形成知识沉淀
-
----
-
-## 🧱 目录结构
-
+``` text
+n8n
+ │
+ ├── 定时任务
+ ├── Webhook
+ ├── EDR
+ ├── Email
+ └── DingTalk
+        │
+        ▼
+   AI Agent System
+        │
+        ▼
+   Xuanwu Platform
 ```
+
+------------------------------------------------------------------------
+
+## 13. 文档即平台知识
+
+玄武云盾必须把平台知识纳入 Git。
+
+重要知识包括：
+
+-   Architecture
+-   Governance
+-   Security Policy
+-   Runbook
+-   ADR
+-   Incident
+-   Change
+-   Asset
+-   Implementation Plan
+
+Agent 在执行任务前，应优先读取：
+
+``` text
+README.md
+ ↓
+相关 Architecture
+ ↓
+相关 Policy
+ ↓
+相关 Runbook
+ ↓
+相关 ADR
+ ↓
+执行
+```
+
+Agent 不应在没有读取相关平台上下文的情况下随意修改核心平台。
+
+------------------------------------------------------------------------
+
+## 14. 项目目录
+
+项目采用以下逻辑结构：
+
+``` text
 xuanwu-secureops-stack/
-├── VPN/                   # P0：企业 VPN 开源替代工程化测试（方案、用例、各产品记录）
-├── TODO.md                # P0 执行清单：按步骤完成测试与文档沉淀
-├── README.md              # 玄武云盾总览（本文件）
-├── README_aliyun.md       # 阿里云等部署变体说明（如有）
-├── LICENSE
-├── docs/                  # （规划中）架构、安装、迁移等文档
-├── manifests/             # （规划中）各组件 Helm / YAML
-├── scripts/               # （规划中）安装、升级、备份、启停脚本
-├── configs/               # （规划中）values、认证、监控规则
-└── .github/workflows/     # （规划中）CI/CD
+│
+├── README.md
+│
+├── 00-project/
+│   ├── VISION.md
+│   ├── GOALS.md
+│   ├── SCOPE.md
+│   ├── PRINCIPLES.md
+│   └── VERSIONING.md
+│
+├── 01-architecture/
+│
+├── 02-governance/
+│
+├── 03-platform/
+│
+├── 04-security/
+│
+├── 05-operations/
+│
+├── 06-runbooks/
+│
+├── 07-aiops/
+│
+├── 08-business/
+│
+├── 09-implementation/
+│
+├── 10-decisions/
+│
+├── 11-incidents/
+│
+├── 12-assets/
+│
+├── manifests/
+├── configs/
+└── scripts/
 ```
 
-当前仓库已包含 **P0（`VPN/` + `TODO.md`）**；其余目录随全栈落地逐步添加。
+README 是项目最高层级的总纲；专业细节必须进入对应目录，不应无限堆积到
+README。
 
----
+------------------------------------------------------------------------
 
-## 🧩 项目许可证
-- License: **Mulan PSL v2**
-- 允许商用、修改、再发布，需保留原始声明。
+## 15. 版本路线
 
----
+玄武云盾采用持续演进方式。
 
-## 🧠 社区与路线图
+### V0.1 --- DA-SOC 承载平台
 
-**落地顺序（与「分阶段推进」一致）**
+目标：
 
-- **P0（进行中）**：VPN 开源替代选型测试 → 输出 `VPN/*/test-result.md` 与 `report/final-report.md`（见 [`TODO.md`](TODO.md)）。  
-- **P1**：边界与访问（OPNsense 定型、JumpServer、统一身份）与 P0 结论衔接。  
-- **P2**：K8s 上数据与安全栈（Wazuh、Doris、Dify 等）按上文架构扩展。  
+> 安全、稳定、可维护地承载 DA-SOC v0.1。
 
-**版本愿景（全栈成熟后）**
+主要能力：
 
-- **v1.0** 基础版（可部署可用）  
-- **v1.1** 增加可视化监控与安全态势看板  
-- **v1.2** 集成国产大模型接口（智谱、通义、文心）  
-- **v1.3** 增强 SOAR 自动响应与安全审计链  
+-   Kubernetes
+-   KubeSphere
+-   基础网络
+-   CNI
+-   基础 NetworkPolicy
+-   Harbor
+-   RBAC
+-   基础监控
+-   基础日志
+-   基础审计
+-   基础备份
+-   基础 AI Ops
 
-欢迎参与贡献，共建国产安全生态。  
-> GitHub Issues / Discussions 将用于需求征集与社区共创。  
+V0.1 不追求一次性建设完整安全体系。
 
----
+------------------------------------------------------------------------
 
-## 🔧 故障排查
+### V0.2 --- 可运维平台
 
-### 常见问题
+增加：
 
-#### Q1: Pod 启动失败，提示存储卷挂载错误
-**原因**：PVC 未创建或存储类配置错误  
-**解决**：
-```bash
-# 检查 PVC
-kubectl get pvc -n xuanwu
-# 检查 StorageClass
-kubectl get storageclass
-# 检查 Longhorn 是否正常运行
-kubectl get pods -n longhorn-system
+-   自动巡检
+-   漏洞检查
+-   证书检查
+-   Backup 检查
+-   资源检查
+-   AI Task Center
+-   钉钉告警
+-   Runbook
+-   基础自动修复
+
+------------------------------------------------------------------------
+
+### V0.3 --- 安全平台
+
+增加：
+
+-   EDR
+-   镜像漏洞扫描
+-   容器安全
+-   Runtime Security
+-   更完整的审计
+-   安全事件管理
+-   SIEM 能力
+
+------------------------------------------------------------------------
+
+### V0.4 --- AI 运维平台
+
+增加：
+
+-   Planner
+-   Executor
+-   Auditor
+-   Multi-Agent
+-   Policy Engine
+-   自动修复
+-   变更审批
+-   自动验证
+-   自动回滚
+-   Configuration Drift Detection
+
+------------------------------------------------------------------------
+
+### V0.5 --- 企业私有云平台
+
+增加：
+
+-   多业务承载
+-   多租户
+-   资源配额
+-   服务目录
+-   标准化业务接入
+-   SLA
+-   生命周期管理
+
+------------------------------------------------------------------------
+
+### V1.0 --- 企业级 AI-Native SecureOps Platform
+
+达到：
+
+> 玄武云盾能够长期承担企业内部核心业务，并能够由 AI
+> 协助完成绝大部分标准化平台运维、安全运营和故障处理，同时确保重大操作可审批、可审计、可恢复。
+
+------------------------------------------------------------------------
+
+## 16. V0.1 的明确边界
+
+V0.1 的唯一核心目标：
+
+> **让 DA-SOC v0.1 在玄武云盾上稳定运行，并验证 AI-Native 运维模式。**
+
+V0.1 暂不强制完成：
+
+-   完整 SIEM
+-   完整 Zero Trust
+-   完整 Runtime Security
+-   完整漏洞运营体系
+-   完整软件供应链安全
+-   完整多集群
+-   完整灾备体系
+-   完整自动修复体系
+
+这些能力进入后续版本。
+
+------------------------------------------------------------------------
+
+## 17. DA-SOC 与玄武云盾的关系
+
+玄武云盾不是 DA-SOC 的组成部分。
+
+关系为：
+
+``` text
+Xuanwu SecureOps Stack
+│
+├── Infrastructure
+├── Kubernetes
+├── Security
+├── Operations
+├── AI Ops
+│
+└── Business Platform
+     │
+     ├── DA-SOC
+     ├── 业务系统 A
+     ├── 业务系统 B
+     └── 未来业务系统
 ```
 
-#### Q2: Dify 无法连接 Doris/MySQL
-**原因**：网络策略或服务发现未配置  
-**解决**：
-- 检查服务端点可达性：`kubectl get svc -n xuanwu`
-- 验证 NetworkPolicy 规则
-- 确认数据库白名单包含 Pod IP 段
+DA-SOC
+是玄武云盾的第一个核心业务承载对象，同时也是验证玄武云盾架构的第一个实际业务。
 
-#### Q3: 钉钉 SSO 登录失败
-**原因**：OAuth 回调地址配置错误  
-**解决**：检查钉钉应用配置中的回调地址是否与部署环境匹配
+------------------------------------------------------------------------
 
-#### Q4: Wazuh Agent 无法连接 Manager
-**原因**：网络策略或防火墙规则限制  
-**解决**：检查 Wazuh Manager 服务端口（1514, 1515）是否开放
+## 18. Agent 开发与实施原则
 
----
+所有重大建设任务建议采用 Multi-Agent 模式。
 
-## 🗑️ 卸载步骤
+推荐：
 
-### 清理 Helm 部署
-```bash
-helm uninstall qinglong -n xuanwu
-helm uninstall dify -n xuanwu
-helm uninstall wazuh -n xuanwu
-helm uninstall doris -n xuanwu
-# ... 卸载其他组件
+``` text
+Task
+ ↓
+Architect Agent
+ ↓
+Security Agent
+ ↓
+Operations Agent
+ ↓
+Domain Agent
+ ↓
+Reviewer Agent
+ ↓
+Final Agent
 ```
 
-### 清理 PVC（谨慎操作）
-```bash
-# ⚠️ 警告：这将删除所有数据
-kubectl delete pvc -n xuanwu --all
+最终输出必须：
+
+-   有明确目标
+-   有明确范围
+-   有前置条件
+-   有执行步骤
+-   有验证步骤
+-   有失败处理
+-   有回滚方案
+-   有安全检查
+-   有完成标准
+
+------------------------------------------------------------------------
+
+## 19. Agent 执行任务的基本要求
+
+任何 Agent 在修改玄武云盾之前：
+
+1.  必须读取 README.md。
+2.  必须确认当前版本。
+3.  必须读取相关架构文档。
+4.  必须读取相关治理规则。
+5.  必须读取相关 Runbook / ADR。
+6.  必须判断任务风险等级。
+7.  必须避免违反平台红线。
+8.  涉及高风险操作时必须请求人工批准。
+9.  执行后必须验证。
+10. 必须记录变更。
+
+------------------------------------------------------------------------
+
+## 20. 变更原则
+
+玄武云盾遵循：
+
+> **Change the definition, then change the platform.**
+
+即：
+
+``` text
+需求
+ ↓
+设计
+ ↓
+文档 / Policy
+ ↓
+Review
+ ↓
+实施
+ ↓
+验证
+ ↓
+记录
 ```
 
-### 清理命名空间
-```bash
-kubectl delete namespace xuanwu
+不鼓励：
+
+``` text
+先直接改生产
+ ↓
+成功了再说
 ```
 
----
+特别是平台核心组件、网络、安全策略、存储和权限。
 
-## 🧑‍💻 联系与贡献
+------------------------------------------------------------------------
 
-### 文档贡献
-- 发现问题？提交 [Issue](https://github.com/your-org/xuanwu-secureops-stack/issues)
-- 改进建议？查看 [贡献指南](CONTRIBUTING.md)（如存在）
-- 文档翻译？参考 [翻译指南](docs/i18n.md)（如存在）
+## 21. 故障原则
 
-### 代码贡献
-- Fork → 创建特性分支 → 提交 PR
-- 代码规范：遵循项目 [代码风格](docs/coding-standards.md)（如存在）
-- 提交规范：遵循 [Conventional Commits](https://www.conventionalcommits.org/)
+故障发生时：
 
-### 社区支持
-- 📫 贡献方式：Fork → Branch → PR  
-- 🧑‍🤝‍🧑 社区支持：钉钉开源群 / 微信群 / GitHub Discussions  
-- 📄 文档官网（规划中）：`https://xuanwu-secureops.io`  
+> **先保护业务，再恢复平台，最后分析根因。**
 
----
+推荐：
 
-## 📚 术语表
+``` text
+Detect
+ ↓
+Assess
+ ↓
+Contain
+ ↓
+Recover
+ ↓
+Verify
+ ↓
+Root Cause Analysis
+ ↓
+Corrective Action
+ ↓
+Knowledge Update
+```
 
-| 术语 | 英文 | 说明 |
-|------|------|------|
-| 玄武云盾 | Xuanwu SecureOps Stack | 本项目的完整名称 |
-| SOC | Security Operations Center | 安全运营中心 |
-| EDR | Endpoint Detection and Response | 终端检测与响应 |
-| SIEM | Security Information and Event Management | 安全信息与事件管理 |
-| SSO | Single Sign-On | 单点登录 |
-| OLAP | Online Analytical Processing | 在线分析处理 |
+每次重大故障都应形成 Incident Record。
 
----
+------------------------------------------------------------------------
 
-**玄武云盾（Xuanwu SecureOps Stack）**
-> 🐢 以安全为基，以智能为核，以低成本构建可持续演进的私有云安全平台。
-> 📚 借助 Vanna.ai 2.0 与腾讯 WeKnora 打通数据洞察与知识问答闭环。
+## 22. 成功标准
+
+玄武云盾不是以"组件安装完成"为成功标准。
+
+真正的成功标准是：
+
+### 平台
+
+-   能稳定运行
+-   能监控
+-   能备份
+-   能恢复
+-   能审计
+-   能升级
+-   能发现异常
+
+### 安全
+
+-   有明确安全边界
+-   有最小权限
+-   有网络隔离
+-   有镜像安全控制
+-   有审计
+-   有漏洞管理路径
+
+### 运维
+
+-   有标准 Runbook
+-   有自动巡检
+-   有任务中心
+-   有通知机制
+-   有故障处理流程
+
+### AI
+
+-   AI 能理解平台
+-   AI 能执行标准任务
+-   AI 能验证结果
+-   AI 能发现问题
+-   AI 能创建待办
+-   AI 能通知人
+-   多 Agent 能互相审计
+-   高风险操作由人决策
+
+### 治理
+
+-   IT / 业务边界清晰
+-   平台红线明确
+-   变更可追踪
+-   例外可审计
+-   架构持续与实际状态保持一致
+
+------------------------------------------------------------------------
+
+## 23. 当前项目状态
+
+**当前版本：V0.1 --- Planning / Architecture**
+
+当前首要任务：
+
+1.  完成玄武云盾项目顶层设计
+2.  完成 V0.1 架构设计
+3.  完成平台治理和安全基线
+4.  完成 AI Ops 最小模型
+5.  规划测试环境基础设施
+6.  建设 KubeSphere Kubernetes 平台
+7.  将 DA-SOC v0.1 部署到玄武云盾
+8.  验证 AI 辅助运维闭环
+
+------------------------------------------------------------------------
+
+## 24. 第一阶段实施顺序
+
+第一阶段不直接追求 V1.0。
+
+建议：
+
+``` text
+Project Charter
+        ↓
+Overall Architecture
+        ↓
+Governance
+        ↓
+Security Baseline
+        ↓
+AI Ops Model
+        ↓
+V0.1 Implementation Plan
+        ↓
+Infrastructure
+        ↓
+Kubernetes
+        ↓
+KubeSphere
+        ↓
+Security Baseline
+        ↓
+Observability
+        ↓
+DA-SOC
+        ↓
+AI Ops MVP
+        ↓
+V0.1 Validation
+```
+
+------------------------------------------------------------------------
+
+## 25. 长期原则
+
+玄武云盾始终遵循以下原则：
+
+1.  **安全优先，但不过度复杂化。**
+2.  **自动化优先，但高风险操作必须有人负责。**
+3.  **策略优先于个人经验。**
+4.  **文档优先于记忆。**
+5.  **可审计优先于"方便"。**
+6.  **可恢复优先于"相信不会出问题"。**
+7.  **最小权限优先。**
+8.  **默认拒绝，明确允许。**
+9.  **平台与业务解耦。**
+10. **AI 可以执行，但不能拥有无限权力。**
+11. **多个 Agent 可以互相审计。**
+12. **所有重要变化都必须留下证据。**
+13. **平台必须能够持续演进。**
+14. **V0.1 解决实际问题，不追求一次性完美。**
+15. **最终目标是让平台不依赖某一个人的个人知识。**
+
+------------------------------------------------------------------------
+
+## 26. 项目最终愿景
+
+玄武云盾最终希望实现：
+
+> **一个人 + 一组 AI Agent +
+> 一套清晰的架构、策略和自动化体系，可以长期管理一个企业级私有云平台。**
+
+人不再需要记住：
+
+-   哪台服务器出了问题
+-   哪个证书快过期
+-   哪个 Pod 异常
+-   哪个节点有漏洞
+-   哪条网络策略被修改
+-   哪个备份失败
+-   哪个业务需要升级
+
+这些事情由平台自动发现、AI 自动分析、Agent 自动处理或生成待办。
+
+人只需要：
+
+> **定义目标、制定规则、处理例外、做最终决策。**
+
+这就是玄武云盾的最终目标。
+
+------------------------------------------------------------------------
+
+**Project:** Xuanwu SecureOps Stack / 玄武云盾\
+**Current Version:** V0.1\
+**Current Mission:** Securely host DA-SOC v0.1 and validate AI-Native
+Platform Operations\
+**Status:** Planning / Architecture
