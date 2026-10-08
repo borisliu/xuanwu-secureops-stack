@@ -1,5 +1,19 @@
-﻿schema_version: "0.1"
+schema_version: "0.1"
 source_of_truth: git
+
+# 审批级别解析顺序（唯一权威定义；缺省即安全侧兜底）
+approval_resolution:
+  order:
+    - match_approval_rule      # 1. approval_rules 中按声明顺序，第一条条件为真的规则生效
+    - match_policy_default     # 2. 命中的 policy（component_types / environment）的 approval_level
+    - fallback_l2              # 3. 以上都未命中时的兜底
+  fallback_level: L2
+  fallback_condition: "no_approval_rule_matched and no_policy_default_matched"
+  unknown_defaults_to_l2: true          # 组件版本/环境/优先级未知或不确定时，一律 L2
+  rule_match_precedence: first_match    # 规则按 YAML 声明顺序求值，首条命中即返回，不合并多条规则
+  fail_closed: true                     # 解析过程出错（条件无法求值、字段缺失）时按 L2 处理
+  never_auto_execute_production: true   # 任何情况下生产变更不得低于 L2
+
 policies:
   - id: platform-core
     component_types: [os, platform, runtime, cni, registry]

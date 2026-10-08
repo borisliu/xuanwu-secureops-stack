@@ -1,4 +1,4 @@
-﻿# 玄武云盾 V0.1 最终实施任务清单
+# 玄武云盾 V0.1 最终实施任务清单
 
 > **Implementation Readiness: READY**
 >
@@ -112,7 +112,7 @@
 - **Objective:** 确定 Git 中的架构、治理、安全、平台、任务和 DA-SOC workflow 事实来源。
 - **Preconditions:** TASK-001～003 完成。
 - **Inputs:** Baseline、ADR、现有仓库目录、DA-SOC workflow 源码。
-- **Actions:** 规划 `architecture/`、`governance/`、`security/`、`platform/`、`manifests/`、`tasks/`、`runbooks/`、`da-soc/workflows/`、`backup/`、`incidents/` 和 `07-aiops/component-lifecycle/`；配置主分支保护、双人审批、签名/审计；定义 generated artifact 与源文件关系；Secrets 仅保存加密引用。
+- **Actions:** 规划 `10-decisions/`、`01-architecture/`、`02-governance/`、`04-security/`、`03-platform/`、`manifests/`、`06-runbooks/`、`da-soc/workflows/`、`09-implementation/`、`11-incidents/`、`07-aiops/component-lifecycle/`（含 `components.yaml`、`policies.yaml`、`upgrade-rules.yaml`）和 `09-implementation/VERSION-MATRIX.md`；规划任务状态模型：**运维 Task 生命周期引用 `ADR-008`，实施任务状态使用 `PENDING/IN_PROGRESS/BLOCKED/PASSED/ROLLED_BACK`（仅限本清单），安全检查状态引用 `04-security/security-baseline.yaml`，组件升级状态引用 `upgrade-rules.yaml`**；配置主分支保护、双人审批、签名/审计；定义 generated artifact 与源文件关系；Secrets 仅保存加密引用。
 - **Validation:** 任一部署配置都能追溯到 Git commit；workflow 可由源文件生成 artifact；无明文 Secret。
 - **Expected Output:** Git layout、分支规则、CODEOWNERS/审批规则、drift 检查规则。
 - **Risk:** 手工配置漂移或未审查变更进入生产。
@@ -126,8 +126,13 @@
 - **Objective:** 让每项任务、审批、事故和证据可追踪。
 - **Preconditions:** TASK-001～004 完成。
 - **Inputs:** 任务清单、外部依赖、风险表、Cutover/Restore/Rollback 附件。
-- **Actions:** 创建任务状态模型 `PENDING/IN_PROGRESS/BLOCKED/PASSED/ROLLED_BACK`；定义证据目录、Incident/Change ID、审批记录和保留周期；登记未决外部依赖；定义 CLM discovery、vulnerability、upgrade、approval、verification 和 rollback evidence 的关联字段。
-- **Validation:** 用演练任务走通创建、审批、执行、证据归档和回退。
+- **Actions:** 创建**实施任务状态模型** `PENDING/IN_PROGRESS/BLOCKED/PASSED/ROLLED_BACK`（仅用于本清单的实施任务跟踪）；定义证据目录、Incident/Change ID、审批记录和保留周期；登记未决外部依赖；定义 CLM discovery、vulnerability、upgrade、approval、verification 和 rollback evidence 的关联字段。
+- **Validation:** 用演练任务走通创建、审批、执行、证据归档和回退；**四个状态维度各自引用唯一权威，不得互相混用或新建第五套**：
+  - 实施任务状态 → 本清单 `PENDING/IN_PROGRESS/BLOCKED/PASSED/ROLLED_BACK`
+  - 运维 Task 生命周期 → `10-decisions/ADR/ADR-008-task-model.md`
+  - 安全检查 / finding 状态 → `04-security/security-baseline.yaml`（`PASS/FAIL/REVIEW/UNKNOWN` + `finding_lifecycle`）
+  - 组件升级状态 → `07-aiops/component-lifecycle/upgrade-rules.yaml`（`lifecycle_statuses`）
+  - 版本冻结状态 → `09-implementation/VERSION-MATRIX.md`（`candidate/validating/frozen/superseded`）
 - **Expected Output:** 实施门禁模板、证据目录、变更模板。
 - **Risk:** 完成状态无法审计或恢复。
 - **Approval:** Governance Owner、Platform Owner。
@@ -286,15 +291,15 @@
 - **Objective:** 建立平台与 DA-SOC 的边界和资源护栏。
 - **Preconditions:** TASK-015 完成。
 - **Inputs:** Namespace 规划、ResourceQuota、LimitRange、节点标签。
-- **Actions:** 创建 KubeSphere Workspace；创建生产 `da-soc` Project 和临时 `da-soc-validate` Project；配置 CPU/内存/PVC/对象数量配额、LimitRange 和 DA-SOC 节点选择策略。
-- **Validation:** 超配额 Pod/PVC 被拒绝；生产与验证资源互不可见；Control Plane 不被调度业务。
+- **Actions:** 创建 KubeSphere Workspace `xuanwu`；按 `10-decisions/ARCHITECTURE-BASELINE-V0.1.md` §5.2 创建**正式 Namespace** `xw-platform`、`xw-observability`、`xw-aiops`、`da-soc`，以及迁移期临时 `da-soc-validate`（切换后删除或标记为不可生产）；配置 CPU/内存/PVC/对象数量配额、LimitRange、默认拒绝 NetworkPolicy 和 DA-SOC 节点选择策略。
+- **Validation:** 超配额 Pod/PVC 被拒绝；生产与验证资源互不可见；Control Plane 不被调度业务；**上述 Namespace 均存在且其 Quota/LimitRange/PSA/default-deny 已生效**；`kube-system`、`kubesphere-system` 不被业务使用。
 - **Expected Output:** Workspace/Project/Quota manifests。
-- **Risk:** 配额过低导致业务异常，过高导致平台耗尽。
+- **Risk:** 配额过低导致业务异常，过高导致平台耗尽；Namespace 缺失导致后续任务自行放置工作负载。
 - **Approval:** Platform Owner、DA-SOC Owner。
 - **Rollback:** 在无业务前调整配额；保留旧值和审批记录。
-- **Evidence:** `kubectl`/KubeSphere 导出、拒绝测试、资源报告。
+- **Evidence:** `kubectl`/KubeSphere 导出、拒绝测试、资源报告、Namespace 清单。
 - **Dependencies:** TASK-015。
-- **Definition of Done:** 两个 Project 边界、配额和节点调度规则生效。
+- **Definition of Done:** §5.2 授权的全部 Namespace 边界、配额和节点调度规则生效。
 
 ### TASK-017 — 配置 KubeSphere RBAC 和管理员分权
 - **Objective:** 实现平台、DA-SOC、观测、安全和只读角色分离。
@@ -467,7 +472,7 @@
 - **Approval:** Registry Owner、Backup Owner、Platform Owner。
 - **Rollback:** 删除隔离 Harbor，不影响生产实例。
 - **Evidence:** 备份 hash、恢复日志、pull/digest 对比、RTO。
-- **Dependencies:** TASK-027、TASK-040。
+- **Dependencies:** TASK-002、TASK-027。
 - **Definition of Done:** Harbor 可从备份和离线 tar 两条路径恢复并供应固定镜像。
 
 ## 11. Phase 7 — Observability
@@ -539,7 +544,7 @@
 - **Approval:** Observability Owner、Backup Owner、Security Owner。
 - **Rollback:** 降低 retention/采集范围并保留业务指标；不删除审计。
 - **Evidence:** 恢复日志、容量图、权限和脱敏报告。
-- **Dependencies:** TASK-030～032、TASK-038。
+- **Dependencies:** TASK-030～032。
 - **Definition of Done:** 观测栈可用、可恢复、可审计。
 
 ## 12. Phase 8 — Security
@@ -857,38 +862,38 @@
 - **Approval:** Platform Owner、DA-SOC Owner、Business Owner、Rollback Owner。
 - **Rollback:** 演练立即回到 ECS 单活；撤销 K8s 生产凭据。
 - **Evidence:** trigger 状态、时间线、执行数、发送对账、审批。
-- **Dependencies:** TASK-052～054、TASK-057。
+- **Dependencies:** TASK-052～054。
 - **Definition of Done:** 单活和回退路径经 Owner 实演验证。
 
 ### TASK-056 — 生成 Cutover Gate 评审包
 - **Objective:** 汇总正式切换所需全部门禁证据。
-- **Preconditions:** TASK-053～055 完成；所有关键备份和恢复演练通过。
-- **Inputs:** Cutover checklist、migration/golden/negative test、backup/restore、observability/security 报告。
-- **Actions:** 汇总数据/图片/流程/邮箱/DingTalk/备份/恢复/监控/日志/告警/回退/单活证据；列出未关闭风险、例外和有效期；提交 GO/NO-GO 评审。
-- **Validation:** 每个 Gate 有证据、Owner 和签字；Critical/High 未关闭项不得隐藏。
+- **Preconditions:** TASK-041、TASK-053～055 完成；TASK-064～066 恢复演练全部完成且 RTO/RPO 达标；所有关键备份成功。未完成任何一项 Restore Drill 时不得提交 GO 评审。
+- **Inputs:** Cutover checklist、migration/golden/negative test、backup/restore drill、observability/security 报告。
+- **Actions:** 汇总数据/图片/流程/邮箱/DingTalk/备份/**恢复演练**/监控/日志/告警/回退/单活证据；逐项核对 `CUTOVER-CHECKLIST.md` 的 Pre-Cutover Gates；列出未关闭风险、例外和有效期；提交 GO/NO-GO 评审。
+- **Validation:** 每个 Gate 有证据、Owner 和签字；**备份→恢复→校验链路的证据齐备**；Critical/High 未关闭项不得隐藏；TASK-064～066 的报告与签字在评审包内可检索。
 - **Expected Output:** Cutover Gate package、GO/NO-GO 结论。
-- **Risk:** 证据不完整却进入生产。
+- **Risk:** 证据不完整却进入生产；在未验证可恢复性的情况下切换。
 - **Approval:** Platform Owner、Security Owner、DA-SOC Owner、Business Owner。
 - **Rollback:** 若 NO-GO，停留验证环境并回到对应 TASK 修复。
-- **Evidence:** 完整评审包、签字、Change ID。
-- **Dependencies:** TASK-041、TASK-053～055、TASK-061～066。
-- **Definition of Done:** 评审包完整且正式批准 GO 后才能执行 TASK-057。
+- **Evidence:** 完整评审包、签字、Change ID、RTO/RPO 实测记录。
+- **Dependencies:** TASK-041、TASK-053～055、TASK-064～066。
+- **Definition of Done:** 评审包完整且正式批准 GO 后才能执行 TASK-057；**未完成 TASK-064～066 时本任务不得标记完成**。
 
 ## 17. Phase 13 — Cutover
 
 ### TASK-057 — 执行生产切换前冻结和最终备份
 - **Objective:** 在生产窗口建立可回退的最后一致性点。
-- **Preconditions:** TASK-056 GO；业务窗口、Owner、审批人和回退负责人在场。
+- **Preconditions:** TASK-056 GO；**TASK-064～066 恢复演练全部通过且恢复校验 PASS**；业务窗口、Owner、审批人和回退负责人在场。
 - **Inputs:** Cutover Gate、Change ID、最新 Git/workflow digest、ECS/K8s 状态、backup jobs。
 - **Actions:** 冻结无关变更；执行 Git、etcd、ClickHouse、raw、n8n、render 和 Harbor 备份；记录两侧 workflow digest、最后处理 Message-ID/UID、ClickHouse checkpoint 和发送记录；确认 ECS trigger 可立即停止。
-- **Validation:** 所有关键备份成功并可读；active execution=0 或已批准处理完；checkpoint 可对账。
+- **Validation:** 所有关键备份成功并可读；active execution=0 或已批准处理完；checkpoint 可对账；**Restore Drill 报告仍在有效期内且未被新的失败演练推翻**。
 - **Expected Output:** Cutover snapshot、冻结记录、最终备份 manifest。
 - **Risk:** 切换后无法准确回退或重复处理。
 - **Approval:** Platform Owner、DA-SOC Owner、Backup Owner、Business Owner。
 - **Rollback:** 不满足任一条件则 NO-GO，保持 ECS 单活。
 - **Evidence:** backup hash、状态快照、审批和时间线。
-- **Dependencies:** TASK-056、TASK-040～041。
-- **Definition of Done:** 最终备份/冻结/状态对账全通过。
+- **Dependencies:** TASK-040～041、TASK-056。
+- **Definition of Done:** 最终备份/冻结/状态对账全通过，且恢复演练门禁证据有效。
 
 ### TASK-058 — 禁用 ECS 生产消费者并启用 K8s 单活
 - **Objective:** 将生产消费边界从 ECS 原子切换到 K8s `da-soc`。
@@ -924,8 +929,8 @@
 - **Objective:** 建立短生命周期 Agent Job 的最小执行框架。
 - **Preconditions:** TASK-004、TASK-036、TASK-042、TASK-059 完成；Agent image digest 已冻结。
 - **Inputs:** Task YAML/Markdown schema、Job template、L0/L1/L2 policy、审批渠道。
-- **Actions:** 定义 Task ID、触发事件、观察证据、分析、计划、风险等级、审批、执行步骤、验证、回滚和审计字段；Job 使用固定 digest、独立 SA、deadline、TTL、资源限制；Task 进入 Git，审批后才创建 Job；把 CLM 的 `component_id`、current/target version、digest、CVE/KEV/EOL、upgrade_reason 和 compatibility evidence 纳入 Task。
-- **Validation:** L0 可自动创建只读 Job；L1 无白名单被拒；L2 无人工审批不创建/不执行；完成后 Job 清理且审计可查。
+- **Actions:** 定义 Task ID、触发事件、观察证据、分析、计划、风险等级、审批、执行步骤、验证、回滚和审计字段；Job 使用固定 digest、独立 SA、deadline、TTL、资源限制；Task 进入 Git，审批后才创建 Job；把 CLM 的 `component_id`、current/target version、digest、`upgrade.required`、`reason_codes`、CVE/KEV/EOL 和 compatibility evidence 纳入 Task。
+- **Validation:** Task YAML 结构与 `10-decisions/ARCHITECTURE-BASELINE-V0.1.md` §16.3 一致，安全类字段以 `04-security/security-baseline.yaml` 的 `extension_fields` 为唯一扩展来源；L0 可自动创建只读 Job；L1 无白名单被拒；L2 无人工审批不创建/不执行；完成后 Job 清理且审计可查。
 - **Expected Output:** Task schema、Job template、审批 Runbook、审计格式。
 - **Risk:** Agent 变成常驻高权控制器或执行未批准动作。
 - **Approval:** AIOps Owner、Security Owner、Governance Owner。
@@ -994,21 +999,21 @@
 
 ### TASK-065 — 执行 ClickHouse、raw 和 n8n 恢复演练
 - **Objective:** 证明 DA-SOC 数据、raw、workflow/state 和 Secret 可完整恢复。
-- **Preconditions:** TASK-040、TASK-047～049、TASK-064 完成；隔离 `da-soc-restore` 环境可用。
+- **Preconditions:** TASK-040、TASK-047～049、TASK-064 完成；外部隔离恢复环境 `xw-restore-drill` 可用（不新增 Kubernetes Namespace）。
 - **Inputs:** ClickHouse BACKUP、raw manifest、n8n artifact/state/key、render config、测试 Secret。
 - **Actions:** 恢复 schema/数据、raw、n8n workflow/state/encryption key、render/archive 配置；运行当天/6 周/6 月 SQL 和图片验证；执行 archive failure 和 null 语义测试。
 - **Validation:** 行数、SQL、文件 hash、workflow digest、图片和失败门禁与基准一致；恢复后无生产发送。
 - **Expected Output:** D2 DA-SOC restore report、差异和 RTO/RPO。
 - **Risk:** 恢复顺序错误导致业务数据和图片不一致。
 - **Approval:** DA-SOC Owner、Backup Owner、Business Owner、Security Owner。
-- **Rollback:** 删除隔离恢复环境并重新从只读备份恢复。
+- **Rollback:** 删除外部隔离恢复环境并重新从只读备份恢复。
 - **Evidence:** backup hash、SQL/image/file 对账、workflow import、失败测试。
 - **Dependencies:** TASK-040、TASK-047～049、TASK-064。
-- **Definition of Done:** DA-SOC 全量恢复演练通过，且不触碰生产外部系统。
+- **Definition of Done:** DA-SOC 全量恢复演练通过，且不触碰生产外部系统、不新增集群内 Namespace。
 
 ### TASK-066 — 执行 Harbor、节点/磁盘和 POP3 replay 演练
 - **Objective:** 覆盖镜像供应、Local PV 故障和输入回放恢复路径。
-- **Preconditions:** TASK-028、TASK-050、TASK-064～065 完成；隔离节点/Harbor 可用。
+- **Preconditions:** TASK-028、TASK-050、TASK-064～065 完成；隔离节点/Harbor 可用（与 TASK-065 使用相互独立的环境，避免恢复资源互扰）。
 - **Inputs:** Harbor backup/tar、Local PV restore Runbook、POP3 replay manifest、测试 DingTalk。
 - **Actions:** 恢复 Harbor 并让 Worker 拉取固定 digest；模拟 `xw-wk-02`/数据盘故障并恢复 ClickHouse/raw；执行 POP3/历史回放到隔离路径；验证输出但禁止业务发送。
 - **Validation:** Harbor HTTPS/权限/digest、PVC 恢复、历史 SQL/图片、replay manifest 和测试目标均通过。
@@ -1024,21 +1029,21 @@
 
 ### TASK-067 — 执行架构、业务、安全、恢复综合验收
 - **Objective:** 对照 Baseline、ADR 和 V0.1 Scope 做最终验收。
-- **Preconditions:** TASK-059、TASK-063、TASK-064～066、TASK-CLM-006 完成；所有 Critical/High 风险已关闭或有批准例外。
+- **Preconditions:** TASK-059、TASK-063、TASK-064～066、TASK-CLM-006、TASK-SEC-006 完成；所有 Critical/High 风险已关闭或有批准例外。
 - **Inputs:** Baseline、ADR、全部任务证据、Cutover/Restore/Rollback、风险和依赖清单。
-- **Actions:** 检查 VM 拓扑、K8s/KubeSphere/Calico、Harbor、Local PV、观测、备份、安全、DA-SOC、单活、AI Ops、IT/Business Boundary 和 V0.1 Non-Goals；逐项标记 PASS/FAIL/EXCEPTION。
+- **Actions:** 检查 VM 拓扑、K8s/KubeSphere/Calico、Harbor、Local PV、观测、备份、安全、DA-SOC、单活、AI Ops、IT/Business Boundary 和 V0.1 Non-Goals；逐项标记 PASS/FAIL/EXCEPTION（**仅用于验收结果，`EXCEPTION` 不是 finding status**；finding 状态只能取 `PASS/FAIL/REVIEW/UNKNOWN`）。
 - **Validation:** 任何未满足的硬约束均阻断验收；`TODO.md` 未被修改；没有未批准新增组件。
 - **Expected Output:** Final Acceptance report、残余风险和例外清单。
 - **Risk:** 只验收组件健康，遗漏业务和恢复要求。
 - **Approval:** Architecture/Platform Owner、Security Owner、DA-SOC Owner、Business Owner。
 - **Rollback:** FAIL 时保持现状或回退生产，禁止宣布 V0.1 完成。
 - **Evidence:** 签署报告、任务索引、审计、restore/cutover 证据。
-- **Dependencies:** TASK-056、TASK-059、TASK-063～066、TASK-CLM-006。
+- **Dependencies:** TASK-056、TASK-059、TASK-063～066、TASK-CLM-006、TASK-SEC-006。
 - **Definition of Done:** 所有硬门禁 PASS，例外有 Owner、期限和补救任务。
 
 ### TASK-068 — 交付实施基线、运维交接和关闭 V0.1
 - **Objective:** 将可运行平台和证据正式交接，并冻结后续演进入口。
-- **Preconditions:** TASK-067 PASS；TASK-CLM-006 已完成；Business Owner 接受生产结果。
+- **Preconditions:** TASK-067 PASS；TASK-CLM-006、TASK-SEC-006 已完成；Business Owner 接受生产结果。
 - **Inputs:** Final Acceptance、Git commit、运行/恢复/回退/安全/AI Ops Runbook、版本矩阵。
 - **Actions:** 交付最终 manifests、版本/digest、备份索引、监控 dashboard、告警路由、RBAC/Policy、DA-SOC workflow artifact、Task/Incident 记录和已知风险；登记 V0.2 backlog（xw-opsapi 评估、HA、多副本存储、Task CRD 等）但不实施；关闭本阶段变更。
 - **Validation:** 新工程师/Agent 只使用 README + Baseline + ADR + `09-implementation/` 可定位运行、验证、回退和恢复入口；所有交付文件可从 Git checkout 重现。
@@ -1047,7 +1052,7 @@
 - **Approval:** Platform Owner、Governance Owner、DA-SOC Owner、Business Owner。
 - **Rollback:** 交接发现缺失时回到 TASK-067，不关闭变更；生产回退仍按正式 Runbook。
 - **Evidence:** Git tag/commit、交接清单、培训/演练记录、Owner 签收。
-- **Dependencies:** TASK-067、TASK-CLM-006。
+- **Dependencies:** TASK-067、TASK-CLM-006、TASK-SEC-006。
 - **Definition of Done:** V0.1 运行、恢复、审计和交接资料完整，后续工作不改变本 Baseline。
 
 ## 20A. Component Lifecycle Management
@@ -1098,7 +1103,7 @@
 - **Objective:** 将安全、生命周期和实际受影响状态转换为可解释的升级判断。
 - **Preconditions:** TASK-CLM-003 完成；`policies.yaml`、`upgrade-rules.yaml` 已评审。
 - **Inputs:** Vulnerability State、Component Registry、升级规则、P0/P1/P2/P3 和 L0/L1/L2 策略。
-- **Actions:** 实现 Critical/High/KEV/EOL/EOS、affected=false、unknown_version、修复版本和核心组件规则；输出 `upgrade_required`、`upgrade_reason`、priority、target_version、approval_required、status 和 deadline；不得把“存在 CVE”机械等同于升级。
+- **Actions:** 实现 Critical/High/KEV/EOL/EOS、affected=false、unknown_version、修复版本和核心组件规则；按 `upgrade-rules.yaml` 的 `upgrade_state_schema` 输出 `upgrade.required`、`reason_codes`、`priority`、`target_version`、`approval_required`、`status` 和 `deadline`；规则未命中或字段缺失时按安全兜底（`review` / P0 / `approval_required: true`）；不得把“存在 CVE”机械等同于升级。
 - **Validation:** 每个判断可回放；Critical/KEV/EOL/受影响 High 命中对应优先级；affected=false 为 REVIEW；生产升级始终需要 L2 审批。
 - **Expected Output:** policy evaluation artifact、规则测试报告、DingTalk/告警输入。
 - **Risk:** 误升级或漏升级造成生产中断或安全暴露。
@@ -1120,7 +1125,7 @@
 - **Rollback:** 关闭/回退未执行 Task；保留原因和审批审计。
 - **Evidence:** Git commit、Task diff、审批、通知和依赖检查。
 - **Dependencies:** TASK-CLM-004、TASK-060。
-- **Definition of Done:** 每个 `upgrade_required=true` 状态都有可执行或明确阻塞的 Git Task。
+- **Definition of Done:** 每个 `upgrade.required=true` 状态都有可执行或明确阻塞的 Git Task。
 
 ### TASK-CLM-006 — 执行受控升级验证、审计和回退
 - **Objective:** 在验证环境或批准的低风险范围完成升级闭环。
@@ -1155,25 +1160,39 @@ TASK-034 ─> TASK-035 ─> TASK-036 ─> TASK-037
 TASK-038 ─> TASK-039/TASK-040 ─> TASK-041
 TASK-042 ─> TASK-043 ─> TASK-044 ─> TASK-045 ─> TASK-046
 TASK-047/TASK-048/TASK-049 ─> TASK-050 ─> TASK-051 ─> TASK-052
-TASK-053 ─> TASK-054 ─> TASK-055 ─> TASK-056
-TASK-057 ─> TASK-058 ─> TASK-059
+TASK-053 ─> TASK-054 ─> TASK-055
 TASK-060 ─> TASK-061 ─> TASK-062 ─> TASK-063
-TASK-064/TASK-065/TASK-066 ─> TASK-067 ─> TASK-068
 
 TASK-004/TASK-005 ─> TASK-CLM-001 ─> TASK-CLM-002 ─> TASK-CLM-003
 TASK-CLM-003 ─> TASK-CLM-004 ─> TASK-CLM-005 ─> TASK-CLM-006
-TASK-CLM-006 ─> TASK-067 ─> TASK-068
 
 TASK-SEC-001 ─> TASK-SEC-002/TASK-SEC-003/TASK-SEC-004
 TASK-SEC-002/TASK-SEC-003/TASK-SEC-004 ─> TASK-SEC-005 ─> TASK-SEC-006
-TASK-SEC-006 ─> TASK-067 ─> TASK-068
+
+┌─ RESTORE DRILL GATE（生产 Cutover 的结构性前置）─────────────────────────────┐
+│ TASK-012/TASK-039/TASK-041 ─> TASK-064（D1 Control Plane / etcd 恢复）      │
+│ TASK-040/TASK-047~049 ─> TASK-065（D2 DA-SOC 数据恢复）                     │
+│ TASK-028/TASK-050 ─> TASK-066（D3 Harbor / D4 POP3 replay）                 │
+│                                                                             │
+│ TASK-041 + TASK-053~055 + TASK-064 + TASK-065 + TASK-066                    │
+│        └─> TASK-056（Cutover Gate 评审包；缺任一恢复演练即 NO-GO）           │
+│                 └─> TASK-057（切换前冻结与最终备份，重新校验恢复门禁）        │
+│                          └─> TASK-058 ─> TASK-059                           │
+│                                                                             │
+│ 禁止存在任何合法路径：TASK-064/065/066 未完成 ─> TASK-056 GO ─> TASK-057     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+TASK-064/TASK-065/TASK-066 ─> TASK-067
+TASK-CLM-006 ─> TASK-067
+TASK-SEC-006 ─> TASK-067
+TASK-067 ─> TASK-068
 ```
 
 并行原则：同一阶段中无数据依赖的任务可以并行，但不得绕过安全、备份、证据和审批门禁。所有生产切换任务严格串行。
 
 ## 22. External Dependencies
 
-实施必须继续维护 `09-implementation/EXTERNAL-DEPENDENCIES.md`。以下依赖为阻塞型，未满足时只能停在对应任务，不得使用未批准替代方案：
+实施必须继续维护 `09-implementation/EXTERNAL-DEPENDENCIES.md`。**该文件是外部依赖（External Dependency）与 Blocking Task 映射的唯一事实来源（SoT）**；下表为摘要，若与本文件不一致，以 `EXTERNAL-DEPENDENCIES.md` 为准并修正本表。未满足时只能停在对应任务，不得使用未批准替代方案：
 
 | Dependency | Owner | Blocking Tasks | Required Evidence |
 |---|---|---|---|
@@ -1230,12 +1249,16 @@ V0.1 只有在以下条件全部满足后才算完成：
 
 ### TASK-SEC-001 — 定义两清两固安全基线和统一状态模型
 - **Objective:** 将漏洞、端口、账号口令和访问控制纳入统一 Desired/Observed/Deviation/Risk/Task/Approval/Remediation/Verification/Audit 模型。
+- **Preconditions:** TASK-004、TASK-005、TASK-CLM-001～004 完成。
 - **Inputs:** `04-security/security-baseline.yaml`、`04-security/port-baseline.yaml`、`04-security/account-baseline.yaml`、`04-security/access-control-baseline.yaml`、CLM Registry 和现有 L0/L1/L2 规则。
 - **Actions:** 冻结四类 finding、PASS/FAIL/REVIEW/UNKNOWN、证据脱敏、Owner、SLA、任务字段和 Git 审批规则；复用 TASK-004、TASK-005、TASK-CLM-001～004。
 - **Validation:** 四类基线均可加载；UNKNOWN 不会变成 PASS；密码、Token、Secret、邮箱正文和业务数据不进入 Git、日志、DingTalk 或 Agent 上下文。
 - **Expected Output:** 安全基线评审记录、字段校验结果、Owner 矩阵。
+- **Risk:** 状态模型不统一，导致四类能力各自定义状态、无法被同一解析器校验。
 - **Approval:** Security Owner、Governance Owner、Platform Owner。
+- **Rollback:** 不启用未冻结的状态模型；保留原 PSS/RBAC 与基线文件不变更。
 - **Dependencies:** TASK-004、TASK-005、TASK-CLM-001～004。
+- **Evidence:** 四份基线 schema 字段校验输出、状态映射表、Owner 签字。
 - **Definition of Done:** 四类安全能力使用同一状态和任务模型，且审计字段完整。
 
 ### TASK-SEC-002 — 建立高危端口发现与端口基线
@@ -1276,9 +1299,14 @@ V0.1 只有在以下条件全部满足后才算完成：
 
 ### TASK-SEC-006 — 两清两固 V0.1 综合验收
 - **Objective:** 以真实证据验收两清两固最小可管理闭环，不建设独立安全平台。
+- **Preconditions:** TASK-SEC-002～005 完成；四类基线与样例 finding 证据齐备。
+- **Inputs:** 四份安全基线、finding 样例、整改记录、审计证据、Prometheus/Grafana 视图。
 - **Actions:** 执行高危漏洞、异常端口、弱账号和高风险访问路径样例；验证指标、UNKNOWN 可见性、任务关闭率、审计完整性和 DingTalk/Prometheus/Grafana 视图。
 - **Validation:** 组件安全覆盖率 100%；关键主机/服务端口基线 100%；高权限账号可见率 100%；RBAC/访问控制审计覆盖率 100%；每个样例有完整闭环证据。
+- **Expected Output:** 两清两固验收报告与覆盖率达标的证据索引。
+- **Risk:** 以"基线可加载"替代"闭环可验证"，导致安全能力空转。
 - **Approval:** Platform Owner、Security Owner、DA-SOC Owner、Business Owner。
 - **Rollback:** 验收失败只回到对应专项任务，不扩大 V0.1 范围，不自动修改生产安全控制。
-- **Dependencies:** TASK-SEC-002～005、TASK-067。
+- **Evidence:** 覆盖率统计、样例闭环证据、UNKNOWN 清单、Owner 签字。
+- **Dependencies:** TASK-SEC-002～005。
 - **Definition of Done:** 两清两固验收通过并纳入 TASK-067/TASK-068 交接，未通过项有 Owner、风险等级、期限和回退计划。

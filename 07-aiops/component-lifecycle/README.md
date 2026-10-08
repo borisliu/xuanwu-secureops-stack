@@ -36,17 +36,38 @@ Component Registry
 
 三类状态不得合并为一个人工维护的版本字段。期望状态和策略在 Git；实际运行状态由发现 Job 写入审计结果或受控状态 artifact。
 
-最小记录形状如下，组件清单可以按组件类型扩展，但不得删除三类状态的边界：
+最小记录形状如下。**字段类型与枚举以 `upgrade-rules.yaml` 的 `upgrade_state_schema` 为唯一权威（canonical）**；组件清单可以按组件类型扩展，但不得删除三类状态的边界，也不得新增第二套升级字段：
 
 ```yaml
-component: { id: ", name: ", type: ", owner: ", environment: [], criticality: " }
-desired: { version: ", digest: ", support_policy: " }
-discovery: { method: ", endpoint: ", last_seen: " }
-security: { highest_severity: ", cve_count: 0, kev: false, affected: null, fixed_version: " }
-lifecycle: { support_status: ", eol: null, eos: null }
-upgrade: { required: ", reason: [], priority: ", target_version: ", approval_required: true, status: " }
-audit: { last_checked: ", source: " }
+component: { id, name, type, owner, environment, criticality }
+desired: { version, digest, support_policy }      # version 引用 VERSION-MATRIX（派生值）
+discovery: { method, endpoint, last_seen }
+security: { highest_severity, cve_count, kev, affected, fixed_version }
+lifecycle: { support_status, eol, eos }           # 支持状态，与 upgrade.status 不同维度
+upgrade:
+  required: true | false | review                 # canonical；upgrade_required 为派生投影
+  reason_codes: [CVE, CVSS_CRITICAL, KEV, EOL, SECURITY_PATCH, POLICY, UNKNOWN_VERSION]
+  priority: P0 | P1 | P2 | P3
+  target_version: string | null
+  approval_required: true | false                 # 由 policies.yaml 的 approval_resolution 解析
+  status: '见 lifecycle_statuses'
+  deadline: ISO-8601 | null
+audit: { last_checked, source }
 ```
+
+### Schema 闭合关系（必须保持）
+
+```text
+upgrade-rules.yaml : upgrade_state_schema   ← canonical 字段定义（唯一权威）
+components.yaml    : component.upgrade.*    ← Registry 数据，使用同一字段与枚举
+policies.yaml      : approval_resolution    ← 决定 approval_required，缺省 L2
+TODO.md §20A         : TASK-CLM-001 ~ TASK-CLM-006
+                       ← TASK-CLM-003 写 Vulnerability State，TASK-CLM-004 用 Rules 计算，
+                         TASK-CLM-005 生成 Git Upgrade Task（引用上述字段），不新增字段
+Agent Job            : 读取 Registry + Rules，写入受控 evidence artifact
+```
+
+**禁止**出现 `upgrade_required` 与 `upgrade.required` 两个并存且无关系的模型：`upgrade.required` 是 canonical 字段，`upgrade_required` 仅为其**只读派生投影**（派生规则见 `upgrade-rules.yaml:field_mapping`），不得独立维护。
 
 ## 3. Discovery Methods
 
@@ -66,14 +87,15 @@ audit: { last_checked: ", source: " }
 
 ## 4. Version Truth
 
-- `09-implementation/VERSION-MATRIX.md`：批准的期望版本、候选状态和冻结条件。
+- `09-implementation/VERSION-MATRIX.md`：**版本与冻结状态的唯一事实来源（Version SoT）**——批准的期望版本、状态与冻结条件。
+- `components.yaml` 的 `desired.version`：**引用 VERSION-MATRIX 的派生值**，不得独立维护或与之冲突。
 - Kubernetes workload `image digest`：实际部署事实；tag 只用于人类可读显示。
-- Git CLM YAML：组件、策略、升级规则和审批边界的 Source of Truth。
+- Git CLM YAML（`components.yaml` / `policies.yaml` / `upgrade-rules.yaml`）：组件、策略、升级规则和审批边界的 Source of Truth。
 - Discovery evidence：实际运行状态、来源、采集时间和 hash；不手工覆盖。
 
 ## 5. Upgrade Policy
 
-`upgrade_required` 不能由“存在 CVE”单独决定：
+`upgrade.required`（canonical 字段；`upgrade_required` 为其只读派生投影）不能由“存在 CVE”单独决定：
 
 - Critical + 实际受影响 + 存在修复版本：`true`，至少 P0/P1。
 - High + 实际受影响 + 存在修复版本：`true`，至少 P1/P2。
@@ -82,7 +104,9 @@ audit: { last_checked: ", source: " }
 - 存在 CVE 但 `affected: false`：不得机械升级，保留审计依据并进入 REVIEW。
 - 版本未知：高风险状态，必须先完成发现或人工确认。
 
-升级原因必须可解释，例如 `CVE`、`CVSS_CRITICAL`、`KEV`、`EOL`、`SECURITY_PATCH`、`POLICY`。
+升级原因必须可解释，取自统一词表 `reason_codes`：`CVE`、`CVSS_CRITICAL`、`KEV`、`EOL`、`SECURITY_PATCH`、`POLICY`、`UNKNOWN_VERSION`。
+
+**规则未命中时的安全兜底（必须遵守）：** 任何规则未匹配、版本/受影响性未知或字段缺失时，一律取 `required: review`、`priority: P0`、`approval_required: true`；**不得默认 `false`，也不得默认自动执行**。
 
 ## 6. Priority and Risk Boundary
 
@@ -97,6 +121,17 @@ audit: { last_checked: ", source: " }
 - `L1`：验证环境 Patch、非生产组件或可回滚白名单 Runbook。
 - `L2`：Kubernetes、KubeSphere、Calico、Harbor、OS、ClickHouse、生产镜像、节点、存储、网络和 RBAC 等必须人工审批。
 
+**审批级别解析顺序（唯一规则，定义于 `policies.yaml:approval_resolution`）：**
+
+```text
+1. approval_rules 中按声明顺序首条命中的规则        → 使用该规则级别
+2. 全部规则未命中 → 命中的 policy 的 approval_level → 使用该 policy 级别
+3. 两者都未命中 / 条件无法求值 / 字段缺失            → L2（安全兜底）
+4. 版本、环境或优先级未知或不确定                    → L2
+```
+
+`L1` 只能由**明确命中** `approval_rules` 的验证/测试环境且 `rollback_capable == true` 时产生，或由 `non-production` policy 默认产生；**不得因"未匹配到规则"而被降级为 L1**。
+
 生产环境禁止自动升级；Agent 可以分析、生成 Task、执行批准的 Runbook、验证和审计，但不得绕过审批。
 
 ## 7. V0.1 Boundary
@@ -106,7 +141,7 @@ audit: { last_checked: ", source: " }
 - Git YAML Component Registry、策略和升级规则。
 - 组件版本和镜像 digest 发现。
 - 基础 CVE/KEV/EOL 状态记录，支持离线导入。
-- 可解释的 `upgrade_required`、原因、优先级和截止时间。
+- 可解释的 `upgrade.required`、原因、优先级和截止时间。
 - Git Upgrade Task、L0/L1/L2 审批、短生命周期 Job、验证、审计和失败回退。
 - Component Coverage、Discovery Freshness、Vulnerability Freshness、Critical Upgrade SLA、Upgrade Closure Rate、EOL Count、Unknown Version Count 指标。
 
@@ -128,8 +163,7 @@ audit: { last_checked: ", source: " }
 | Component Coverage | 已纳入 CLM 管理的组件 / 应管理组件 | 100% |
 | Version Discovery Freshness | 距最近一次成功 discovery 的时间 | ≤ 24h |
 | Vulnerability Assessment Freshness | 距最近一次漏洞/生命周期评估的时间 | ≤ 7d；Critical/KEV 事件立即复核 |
-| Critical Upgrade SLA | Critical/KEV 发现到 Git Upgrade Task 创建的时间 | 按 P0 窗口，必须可测量 |
-| Upgrade Closure Rate | 已验证关闭的升级 Task / 应升级 Task | 持续上升；未关闭项必须有 Owner 和期限 |
+| Critical Upgrade SLA | Critical/KEV 发现到 Git Upgrade Task 创建的时间 | 按 P0 窗口，必须可测量 || Upgrade Closure Rate | 已验证关闭的升级 Task / 应升级 Task | 持续上升；未关闭项必须有 Owner 和期限 |
 | EOL Component Count | 当前 EOL/EOS 组件数量 | 0；例外必须有批准期限 |
 | Unknown Version Count | 无法自动发现当前版本的组件数量 | 0 |
 ## 10. Two-Clear-Two-Firm Security Operations

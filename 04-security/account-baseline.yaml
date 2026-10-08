@@ -2,6 +2,8 @@ schema_version: 0.1
 source_of_truth: git
 name: xuanwu-account-credential-baseline
 owner: security
+state_model_ref: 04-security/security-baseline.yaml
+state_model_note: "finding 状态与 finding 生命周期取自 security-baseline.yaml；本文件不新增状态"
 record_fields: [account, system, type, privilege, auth_method, last_used, default_account, shared_account, mfa, risk, status]
 discovery:
   uos: [local_accounts, passwd_shadow_metadata, sudoers, sshd_config, lastlog, faillock]
@@ -58,8 +60,8 @@ checks:
     approval_required: L2
 rules:
   secret_value_protection: FAIL_AND_REDACT_AND_CREATE_INCIDENT
-  unknown_account_state: UNKNOWN_AND_CREATE_ACCOUNT_TASK
-  default_or_weak_account: FAIL_AND_CREATE_ACCOUNT_TASK
+  unknown_account_state: UNKNOWN_AND_CREATE_TASK
+  default_or_weak_account: FAIL_AND_CREATE_TASK
 verification:
   methods: [configuration_recheck, permission_recheck, controlled_authentication_test]
   controlled_authentication_test_rules: [never_store_password, never_log_password, never_test_against_production_mailbox]

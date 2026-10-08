@@ -2,12 +2,28 @@ schema_version: 0.1
 source_of_truth: git
 name: xuanwu-two-clear-two-firm
 scope: [platform, da-soc, managed-images]
+
+# 本文件是两清两固「统一状态模型」的唯一权威定义（State Model SoT）。
+# 四份基线（本文件 + port/account/access-control）必须引用同一 statuses 与
+# finding_lifecycle；不得各自新增状态。
 state_model:
+  authority: 04-security/security-baseline.yaml
   statuses: [PASS, FAIL, REVIEW, UNKNOWN]
   unknown_is_pass: false
-  lifecycle: [discovered, assessed, task-created, approval-pending, remediation, verifying, closed, escalated]
+  unknown_default: UNKNOWN
+  finding_lifecycle: [discovered, assessed, task-created, approval-pending, remediation, verifying, closed, escalated]
+  finding_lifecycle_note: "本生命周期仅用于两清两固 finding；运维 Task 生命周期见 ADR-008，组件升级状态见 07-aiops/component-lifecycle/upgrade-rules.yaml"
+  # EXCEPTION 不是 finding status：它只是 Task/验收层的例外登记属性。
+  exception_is_finding_status: false
+  exception_note: "EXCEPTION 只能出现在 Task/验收的 exception register（TODO TASK-067 语境），不得作为 finding 的 status 值"
+
 task_model:
+  # Task 基础 Schema 的权威定义在 10-decisions/ARCHITECTURE-BASELINE-V0.1.md §16.3。
+  # 下列字段是安全类 Task 在上述 Schema 之上的扩展（extension），不是第二套 Task Schema。
+  base_schema_authority: 10-decisions/ARCHITECTURE-BASELINE-V0.1.md
+  base_schema_section: "§16.3 Task YAML"
   categories: [VULNERABILITY, PORT, ACCOUNT, ACCESS_CONTROL]
+  extension_fields: [category, expected_state, observed_state, risk, remediation]
   required_fields: [id, category, asset, finding, severity, evidence, expected_state, observed_state, remediation, approval_required, owner, status, verification, rollback]
   evidence_rules:
     required_stages: [discovery, assessment, task, execution, verification, closure]
@@ -15,9 +31,16 @@ task_model:
     secret_values_allowed: false
     password_values_allowed: false
     mailbox_body_allowed: false
+  rules_vocabulary: [FAIL_AND_CREATE_TASK, UNKNOWN_AND_CREATE_TASK, REVIEW_AND_CREATE_TASK, BLOCK_AND_ESCALATE_L2, FAIL_AND_REDACT_AND_CREATE_INCIDENT]
+  rules_vocabulary_note: "四份基线的 rules 动作必须取自本词表；INCIDENT 为附加属性，不是独立状态"
 approval:
+  resolution_order: [match_approval_rule, match_policy_default, fallback_l2]
+  fallback_level: L2
+  unknown_or_unmatched: L2
   L0: [discover, assess, report, create_task, notify]
   L1: [non_production_remediation, approved_low_risk_runbook]
+  L1_requires: [non_production_scope, approved_reversible_runbook, automatic_verification, rollback_available]
+  L1_note: "L1 必须同时满足 non-production、已批准可回滚 Runbook、自动验证、具备回退；任何一条不满足即升级 L2"
   L2:
     required_for: [production_account, production_rbac, cluster_admin, firewall_core_rule, calico_core_networkpolicy, kubernetes_api, harbor_admin_or_robot, da_soc_access_control, core_business_port, os_or_platform_upgrade]
     requires: [human_approval, change_diff, backup_or_checkpoint, rollback_plan, audit_record]

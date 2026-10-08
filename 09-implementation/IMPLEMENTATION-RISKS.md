@@ -16,9 +16,9 @@
 | RISK-012 | Agent 越权 | Critical | Job SA 权限过大 | 最小 RBAC、Job TTL、L2 | audit/Role review | revoke SA、暂停 Agent | Security/AIOps |
 | RISK-013 | 资源/磁盘耗尽 | High | ClickHouse/Loki/Harbor 增长 | quota/retention/watermark | metrics/alert | 清理受控数据或扩盘，禁止盲删 | Platform |
 | RISK-014 | 生产切换后不可回退 | High | 未保留 ECS 状态/凭据 | cutover gate | checklist | 切换前置条件不满足即阻塞 | Platform/DA-SOC |
-| RISK-OS-001 | UOS 1060e 与 Kubernetes/KubeSphere 组合兼容性未知 | High | 节点初始化、加入或 KubeSphere 安装失败 | 将组合标为 Candidate；先完成独立验证集群 | TASK-010/011/015 健康检查和安装报告 | 不冻结、不进入 DA-SOC 切换；回到版本冻结 | Platform |
+| RISK-OS-001 | UOS 1060e 与 Kubernetes/KubeSphere 组合兼容性未知 | High | 节点初始化、加入或 KubeSphere 安装失败 | 将组合标为 Candidate；先完成**单集群内的隔离验证**（外部隔离环境 `xw-restore-drill` 或 `da-soc-validate` Namespace），不新建第二集群 | TASK-010/011/015 健康检查和安装报告 | 不冻结、不进入 DA-SOC 切换；回到版本冻结 | Platform |
 | RISK-OS-002 | OS 软件源或离线安装介质不可获得 | High | 无法安装补丁、containerd 或 Kubernetes 前置包 | 提前确认 UOS 软件源、离线 RPM/包、ISO 和 SHA256 | TASK-006/007/009 preflight | 停止安装，使用已批准介质或重新排期 | Infrastructure |
-| RISK-OS-003 | UOS 安全基线与 Kubernetes/containerd 网络配置冲突 | High | firewall、SELinux/安全模块、iptables/nftables、sysctl、cgroup 或时间同步异常 | 记录为待验证项，不预设必然冲突；在 preflight 和独立验证集群测试 | TASK-007/009/010/011/018 报告 | 保留最小安全基线，修订兼容参数并重新验证；不得无审批关闭安全控制 | Security/Platform |
+| RISK-OS-003 | UOS 安全基线与 Kubernetes/containerd 网络配置冲突 | High | firewall、SELinux/安全模块、iptables/nftables、sysctl、cgroup 或时间同步异常 | 记录为待验证项，不预设必然冲突；在 preflight 和**单集群隔离验证**中测试 | TASK-007/009/010/011/018 报告 | 保留最小安全基线，修订兼容参数并重新验证；不得无审批关闭安全控制 | Security/Platform |
 | RISK-CLM-001 | 组件版本无法自动发现 | High | API、节点命令或镜像 metadata 不可用 | 组件专用 discovery method；unknown_version 进入高风险 | discovery 失败告警，暂停升级判断 | 冻结升级判断，转人工确认 | CLM/Platform |
 | RISK-CLM-002 | 镜像 tag 与实际 digest 不一致 | High | tag 漂移或手工 manifest | digest 作为部署事实，Harbor/Git 双重记录 | drift 检查、镜像拉取审计 | 冻结发布，恢复批准 digest | Registry/Platform |
 | RISK-CLM-003 | 漏洞或 EOL 数据过期/误判 | High | Source/Last Updated 超过 freshness 或 affected 判断缺失 | 记录来源、时间和 affected；过期状态为 REVIEW | freshness、KEV、EOL 和 unknown 指标 | 不自动升级，转人工复核 | Security |

@@ -28,11 +28,30 @@
 - [ ] 生产邮箱读取范围、不标已读、删除/修改保护测试通过。
 - [ ] 测试 DingTalk 群发送成功，生产/测试凭据隔离。
 - [ ] ClickHouse、raw、n8n、render、Harbor 备份成功。
-- [ ] Control Plane、ClickHouse、raw、Harbor restore drill 证据已归档。
+- [ ] **Restore Drill 已完成且 PASS（TASK-064 / TASK-065 / TASK-066）；Control Plane、ClickHouse、raw、Harbor restore drill 证据已归档。**
 - [ ] 监控、日志、告警和运维 DingTalk 正常。
 - [ ] 单活消费者证明完成。
 - [ ] ECS 停止/启动和状态恢复 Runbook 已演练。
 - [ ] 回退 Owner、审批人和生产窗口已确认。
+
+### 2.1 Pre-Cutover Restore Gate（结构性阻塞项，不得跳过）
+
+```text
+Backup 完成
+   └─> Restore Drill 完成（TASK-064 D1 / TASK-065 D2 / TASK-066 D3+D4）
+          └─> Restore Validation PASS（RTO/RPO 达标 + SQL/图片/门禁对账一致）
+                 └─> DA-SOC Validation PASS（TASK-053~055）
+                        └─> Cutover Gate 评审包（TASK-056）
+                               └─> Cutover Preparation（TASK-057）
+                                      └─> Production Cutover（TASK-058 / TASK-059）
+```
+
+- [ ] TASK-064、TASK-065、TASK-066 **全部完成**（缺任一项即 NO-GO，不得进入第 3 节切换步骤）。
+- [ ] 恢复演练 RTO/RPO 实测记录已归档且达标。
+- [ ] 恢复校验（SQL 结果、图片、`null` 语义、archive 失败门禁）与基准一致。
+- [ ] 恢复演练环境为**外部隔离环境 `xw-restore-drill`**；未新增 Kubernetes Namespace。
+
+> **硬约束：TASK-064～066 未全部通过时，本清单第 3 节任何步骤均不得执行。**
 
 ## 3. Cutover Steps
 

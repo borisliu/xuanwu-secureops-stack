@@ -2,12 +2,18 @@ schema_version: 0.1
 source_of_truth: git
 name: xuanwu-port-exposure-baseline
 owner: security
+state_model_ref: 04-security/security-baseline.yaml
+state_model_note: "finding 状态与 finding 生命周期取自 security-baseline.yaml；本文件不新增状态"
 discovery:
   host_listeners: [ss, nftables, iptables, uos_firewall]
   kubernetes: [service, nodeport, loadbalancer, ingress, endpoint]
   external_services: [harbor_api, kubernetes_api, kubesphere_api]
   rescan_after_remediation: true
 record_fields: [host, port, protocol, service, purpose, expected_state, allowed_source, risk_level, owner, port_required, port_reason, priority, expected_source, actual_source, status]
+field_types:
+  port_required: [YES, NO, UNKNOWN]
+  port_required_note: "布尔型需求标记，取值仅 YES/NO/UNKNOWN；REVIEW 是 finding status，不是 port_required 的取值"
+  status: "[PASS, FAIL, REVIEW, UNKNOWN]"
 baseline:
   - id: management-ssh
     host_selector: [xw-cp-01, xw-wk-01, xw-wk-02, xw-harbor-01, xw-backup-01]
@@ -67,14 +73,17 @@ baseline:
     allowed_source: []
     risk_level: high
     owner: platform
-    port_required: REVIEW
+    port_required: UNKNOWN
+    port_reason: "仅在例外登记批准后才允许；未登记时按 UNKNOWN 处理并生成 PORT Task"
     priority: P1
 rules:
-  unexpected_listen: FAIL_AND_CREATE_PORT_TASK
-  source_overreach: FAIL_AND_CREATE_PORT_TASK
-  unregistered_port: REVIEW_AND_CREATE_PORT_TASK
-  stale_discovery: UNKNOWN_AND_CREATE_PORT_TASK
+  unexpected_listen: FAIL_AND_CREATE_TASK
+  source_overreach: FAIL_AND_CREATE_TASK
+  unregistered_port: REVIEW_AND_CREATE_TASK
+  stale_discovery: UNKNOWN_AND_CREATE_TASK
 remediation:
   L0: [record, notify, create_task]
   L1: [close_non_production_low_risk_port_with_approved_runbook]
   L2: [close_production_port, change_firewall_core_rule, change_calico_or_ingress_exposure]
+  resolution_order: [match_approval_rule, match_policy_default, fallback_l2]
+  fallback_level: L2

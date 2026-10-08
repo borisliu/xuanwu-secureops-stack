@@ -2,16 +2,24 @@
 
 > 状态：候选版本基线，尚未完成组合兼容性冻结。
 > 依据：`10-decisions/ARCHITECTURE-BASELINE-V0.1.md`、ADR-002～ADR-008，以及 V0.1 OS/云原生版本补充结论。
+>
+> **本文件是 Approved Desired Version / Version Freeze 的唯一事实来源（Version SoT）。**
+> 其他文件（`07-aiops/component-lifecycle/components.yaml`、`TODO.md`、CLM README）**不得维护独立的期望版本表**：
+> - `components.yaml` 的 `desired.version` 是**引用本矩阵的派生值**（`version_ref` 语义），不得与本矩阵冲突；
+> - `TODO.md` **不得复制版本矩阵**，只引用本文件；
+> - 运行态实际版本由 Discovery evidence 决定，不是本矩阵的内容。
 
 组件期望状态和生命周期策略由 `07-aiops/component-lifecycle/components.yaml`、`policies.yaml` 和 `upgrade-rules.yaml` 管理；本矩阵不替代运行态 Discovery evidence。
 
 ## 1. Version Freeze Rules
 
-1. 本文件区分 `Candidate`、`Pending Compatibility Validation` 和 `Frozen`；候选版本不得描述为官方认证组合。
-2. Kubernetes、KubeSphere、containerd、Calico 和 UOS 的组合必须经过实际安装、节点加入、网络、存储、Harbor、观测和 DA-SOC 验证后才能冻结。
-3. 所有最终版本、镜像 digest、ISO/RPM/离线包 SHA256 和回滚版本必须进入 Git；禁止使用 `latest`。
-4. 版本变更必须记录 Implementation Decision、影响、验证和回滚路径。
-5. `TASK-001`～`TASK-005` 完成前不得安装对应组件；候选状态不等于安装放行。
+1. **版本冻结状态（Version Status）的唯一词表为 `candidate` / `validating` / `frozen` / `superseded`**，由本矩阵定义。表格中的 `Pending Compatibility Validation`、`Pending Version Freeze`、`Candidate / Verify` 均为 `validating` 或 `candidate` 的**可读标注**，不是第二套状态；`Frozen` 对应 `frozen`。
+2. 本文件区分候选（`candidate`）、验证中（`validating`）和已冻结（`frozen`）；候选版本不得描述为官方认证组合。
+3. Kubernetes、KubeSphere、containerd、Calico 和 UOS 的组合必须经过实际安装、节点加入、网络、存储、Harbor、观测和 DA-SOC 验证后才能冻结。
+4. 所有最终版本、镜像 digest、ISO/RPM/离线包 SHA256 和回滚版本必须进入 Git；禁止使用 `latest`。
+5. 版本变更必须记录 Implementation Decision、影响、验证和回滚路径。
+6. `TASK-001`～`TASK-005` 完成前不得安装对应组件；候选状态不等于安装放行。
+7. 任何组件在本矩阵中出现且仅出现一个 `desired version`；发现不一致时**以本文件为准**，并修正引用方。
 
 ## 2. OS and Cloud-Native Baseline
 

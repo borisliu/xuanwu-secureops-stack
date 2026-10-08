@@ -841,6 +841,8 @@ README。
 -   基础审计
 -   基础备份
 -   基础 AI Ops
+-   组件生命周期管理（CLM）最小闭环
+-   两清两固安全运营最小闭环（清高危漏洞、清高危端口、固弱账号口令、固弱访问控制）
 
 V0.1 不追求一次性建设完整安全体系。
 
@@ -1140,11 +1142,23 @@ Knowledge Update
 
 ## 23. 当前项目状态
 
-**当前版本：V0.1 --- Architecture Frozen / Implementation TODO Ready**
+**当前版本：V0.1 --- Architecture Frozen / Consistency Closed / Implementation Ready**
+
+| 维度 | 当前状态 |
+|---|---|
+| Architecture | **FROZEN** —— 唯一实施依据为 `10-decisions/ARCHITECTURE-BASELINE-V0.1.md`（Approved Baseline） |
+| Architecture Decision | `10-decisions/ADR/ADR-001` ~ `ADR-008`（Accepted） |
+| Consistency Audit | 已完成 6 份独立横向一致性审计，见 `audit/` |
+| Consistency Closure | 正在完成最终 P0/P1 收口；P2/P3 记录不实施 |
+| Implementation TODO | `TODO.md` 为唯一实施任务源；从 `TASK-001` 开始 |
+| Installation | **NOT STARTED** —— 尚未安装任何组件 |
+
+**下一阶段：** 一致性收口完成并经人工确认后，从 `TASK-001`（Phase 0 参数冻结）开始实施。
+本阶段**不是** Implementation Completed，也**不是** Production Ready；当前仅为 **Implementation Ready**。
 
 ### V0.1 OS 与云原生版本基线
 
-当前记录的是候选基线，不是官方认证的完整组合：
+当前记录的是候选基线，不是官方认证的完整组合。**版本唯一事实来源为 `09-implementation/VERSION-MATRIX.md`**；下表为摘要，不得作为第二份版本表维护：
 
 | Component | Candidate | Status |
 |---|---|---|
@@ -1266,7 +1280,8 @@ V0.1 Validation
 **Current Version:** V0.1\
 **Current Mission:** Securely host DA-SOC v0.1 and validate AI-Native
 Platform Operations\
-**Status:** Planning / Architecture
+**Status:** Architecture Frozen / Consistency Closed / Implementation Ready
+（Installation: NOT STARTED）
 
 ## 27. V0.1 两清两固安全运营能力
 

@@ -1,4 +1,4 @@
-﻿schema_version: "0.1"
+schema_version: "0.1"
 source_of_truth: git
 priority:
   P0:
@@ -17,33 +17,64 @@ priority:
 rules:
   - id: critical-fixed-version
     when: "affected == true and severity == Critical and fixed_version != null"
-    set: { upgrade_required: true, minimum_priority: P1 }
+    set: { required: true, priority: P1 }
     reason_codes: [CVE, CVSS_CRITICAL, SECURITY_PATCH]
   - id: high-fixed-version
     when: "affected == true and severity == High and fixed_version != null"
-    set: { upgrade_required: true, minimum_priority: P2 }
+    set: { required: true, priority: P2 }
     reason_codes: [CVE, SECURITY_PATCH]
   - id: kev
     when: "kev == true"
-    set: { upgrade_required: review, minimum_priority: P0 }
+    set: { required: review, priority: P0 }
     reason_codes: [KEV]
   - id: eol-eos
     when: "eol == true or eos == true"
-    set: { upgrade_required: true, minimum_priority: P1 }
+    set: { required: true, priority: P1 }
     reason_codes: [EOL]
   - id: not-affected
     when: "cve_count > 0 and affected == false"
-    set: { upgrade_required: review }
+    set: { required: review }
     reason_codes: [POLICY]
     evidence_required: true
   - id: unknown-version
     when: "current_version == unknown or current_digest == unknown"
-    set: { upgrade_required: review, risk: high }
-    reason_codes: [POLICY]
+    set: { required: review, priority: P0 }
+    reason_codes: [UNKNOWN_VERSION]
     evidence_required: true
 
-lifecycle:
+# 规则输出的规范字段（canonical）与字段映射。规则引擎只写规范字段；
+# 其他文件不得维护第二套升级模型。
+upgrade_state_schema:
+  canonical_path: "component.upgrade.*"
+  fields:
+    required: [true, false, review]
+    reason_codes: [CVE, CVSS_CRITICAL, KEV, EOL, SECURITY_PATCH, POLICY, UNKNOWN_VERSION]
+    priority: [P0, P1, P2, P3]
+    target_version: "string | null"
+    approval_required: "true | false（由 policies.yaml 的 approval_resolution 解析，未知或未命中一律 true）"
+    status: "见 lifecycle_statuses"
+    deadline: "ISO-8601 | null"
+  field_mapping:
+    canonical_field: "upgrade.required"
+    derived_field:
+      - name: "upgrade_required"
+        rule: "由 upgrade.required 派生：true -> true，review -> review，false -> false"
+        note: "只读派生投影，禁止独立维护；允许作为规则 DSL 与文档的可读别名"
+    deprecated_field:
+      - name: "set.minimum_priority"
+        replaced_by: "set.priority"
+        note: "V0.1 内已重命名；旧字段不再出现"
+  default_when_unmatched:
+    required: review
+    priority: P0
+    approval_required: true
+    note: "任何规则未命中、版本未知或字段缺失时按安全侧兜底，不得默认 false"
+
+reason_codes_vocabulary: [CVE, CVSS_CRITICAL, KEV, EOL, SECURITY_PATCH, POLICY, UNKNOWN_VERSION]
+
+lifecycle_statuses:
   statuses: [discovered, assessed, upgrade-required, task-created, approved, executing, verifying, closed, rolled-back, review]
+  note: "本字段为「组件升级状态」专用；运维 Task 生命周期见 ADR-008，安全检查状态见 04-security/security-baseline.yaml"
   forbidden_automatic_actions:
     - production_upgrade
     - kubernetes_minor_upgrade

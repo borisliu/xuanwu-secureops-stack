@@ -1,5 +1,24 @@
-﻿schema_version: "0.1"
+schema_version: "0.1"
 source_of_truth: git
+
+# 字段语义与权威来源声明（消除同名不同义）
+field_semantics:
+  component.upgrade:
+    schema_authority: "07-aiops/component-lifecycle/upgrade-rules.yaml (upgrade_state_schema)"
+    status_enum_authority: "07-aiops/component-lifecycle/upgrade-rules.yaml (lifecycle_statuses)"
+    note: "本文件只提供初始值；运行态由 discovery 与 rules 写入受控 evidence artifact"
+  component.lifecycle.support_status:
+    enum: [pending-validation, supported, eol, eos, unknown]
+    note: "组件支持状态，与 upgrade.status 是不同维度，不得混用"
+  component.desired.status:
+    authority: "09-implementation/VERSION-MATRIX.md（版本冻结状态）"
+    enum: [candidate, validating, frozen, superseded]
+    note: "版本冻结状态；不得与 upgrade.status 或 lifecycle.support_status 混用"
+  component.upgrade.required:
+    enum: [true, false, review]
+    default_when_unknown: review
+    note: "canonical 字段；upgrade_required 仅为其只读派生投影"
+
 components:
   - id: os.uos-server
     name: 统信服务器操作系统
@@ -10,7 +29,7 @@ components:
     desired: { version: "V20 1060e", architecture: amd64, status: candidate, support_policy: "免费使用授权；不等同于官方认证组合、SLA 或商业支持承诺" }
     discovery: { method: [etc_os_release, uname, rpm_metadata], endpoint: node-local }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: platform.kubernetes
     name: Kubernetes
     type: platform
@@ -20,7 +39,7 @@ components:
     desired: { version: "1.30.6", status: candidate, support_policy: "KubeSphere 官方兼容矩阵 + 实际组合验证" }
     discovery: { method: [kubernetes_api, workload_images], endpoint: kubernetes-api }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: platform.kubesphere
     name: KubeSphere
     type: platform
@@ -30,7 +49,7 @@ components:
     desired: { version: "4.1.x", preferred_version: "4.1.2", status: candidate, support_policy: "官方矩阵、Kubernetes 兼容性和 UOS 实际验证" }
     discovery: { method: [kubernetes_resources, kubesphere_api, workload_images], endpoint: kubernetes-api }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: runtime.containerd
     name: containerd
     type: runtime
@@ -40,7 +59,7 @@ components:
     desired: { version: "1.7.x", status: candidate }
     discovery: { method: [node_command, package_manager, cri_status], endpoint: node-local }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: network.calico
     name: Calico
     type: cni
@@ -50,27 +69,27 @@ components:
     desired: { version: unknown, status: candidate, support_policy: "NetworkPolicy、跨节点网络和故障恢复验证" }
     discovery: { method: [kubernetes_api, calico_crd, pod_images], endpoint: kubernetes-api }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: registry.harbor
     name: Harbor
     type: registry
     owner: registry
     environment: [platform]
     criticality: core-platform
-    desired: { version: unknown, status: pending-freeze }
+    desired: { version: unknown, status: validating }
     discovery: { method: [harbor_api, package_metadata], endpoint: harbor-api }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: data.clickhouse
     name: ClickHouse
     type: database
     owner: da-soc
     environment: [da-soc]
     criticality: core-business
-    desired: { version: unknown, status: pending-freeze }
+    desired: { version: unknown, status: validating }
     discovery: { method: [http_api, sql, workload_images], endpoint: da-soc-service }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: business.n8n
     name: n8n
     type: workflow
@@ -80,7 +99,7 @@ components:
     desired: { version: "2.15.0 or approved existing version", status: candidate }
     discovery: { method: [application_api, workload_images], endpoint: da-soc-service }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: business.render-archive
     name: render/archive
     type: business-service
@@ -90,74 +109,74 @@ components:
     desired: { version: "da-soc-render:0.1", status: candidate }
     discovery: { method: [service_api, workload_images], endpoint: da-soc-service }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: observability.prometheus
     name: Prometheus
     type: observability
     owner: observability
     environment: [platform]
     criticality: platform-support
-    desired: { version: unknown, status: pending-freeze }
+    desired: { version: unknown, status: validating }
     discovery: { method: [kubernetes_api, workload_images, application_api], endpoint: kubernetes-api }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: observability.grafana
     name: Grafana
     type: observability
     owner: observability
     environment: [platform]
     criticality: platform-support
-    desired: { version: unknown, status: pending-freeze }
+    desired: { version: unknown, status: validating }
     discovery: { method: [application_api, workload_images], endpoint: kubernetes-api }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: observability.alertmanager
     name: Alertmanager
     type: observability
     owner: observability
     environment: [platform]
     criticality: platform-support
-    desired: { version: unknown, status: pending-freeze }
+    desired: { version: unknown, status: validating }
     discovery: { method: [kubernetes_api, workload_images, application_api], endpoint: kubernetes-api }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: observability.fluent-bit
     name: Fluent Bit
     type: logging
     owner: observability
     environment: [kubernetes]
     criticality: platform-support
-    desired: { version: unknown, status: pending-freeze }
+    desired: { version: unknown, status: validating }
     discovery: { method: [workload_images, node_daemonset], endpoint: kubernetes-api }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: observability.loki
     name: Loki
     type: logging
     owner: observability
     environment: [platform]
     criticality: platform-support
-    desired: { version: unknown, status: pending-freeze }
+    desired: { version: unknown, status: validating }
     discovery: { method: [application_api, workload_images], endpoint: kubernetes-api }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: image.da-soc
     name: DA-SOC production images
     type: container-image
     owner: da-soc
     environment: [da-soc]
     criticality: core-business
-    desired: { version: unknown, digest: unknown, status: pending-freeze }
+    desired: { version: unknown, digest: unknown, status: validating }
     discovery: { method: [harbor_api, workload_images], endpoint: harbor-api }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
   - id: image.agent
     name: Agent images
     type: container-image
     owner: aiops
     environment: [platform]
     criticality: platform-support
-    desired: { version: unknown, digest: unknown, status: pending-freeze }
+    desired: { version: unknown, digest: unknown, status: validating }
     discovery: { method: [harbor_api, workload_images], endpoint: harbor-api }
     lifecycle: { support_status: pending-validation, eol: unknown, eos: unknown }
-    upgrade: { approval_required: true, status: planned }
+    upgrade: { required: review, approval_required: true, status: discovered }
