@@ -132,3 +132,31 @@ audit: { last_checked: ", source: " }
 | Upgrade Closure Rate | 已验证关闭的升级 Task / 应升级 Task | 持续上升；未关闭项必须有 Owner 和期限 |
 | EOL Component Count | 当前 EOL/EOS 组件数量 | 0；例外必须有批准期限 |
 | Unknown Version Count | 无法自动发现当前版本的组件数量 | 0 |
+## 10. Two-Clear-Two-Firm Security Operations
+
+CLM supplies the vulnerability and lifecycle part of the V0.1 security loop. The other three controls use the declarative baselines in `04-security/`:
+
+- `security-baseline.yaml` defines the shared Desired State to Observed State to Deviation to Risk to Task to Approval to Remediation to Verification to Audit model.
+- `port-baseline.yaml` defines host listeners, Kubernetes Service/NodePort/LoadBalancer/Ingress exposure, Harbor and Kubernetes API boundaries.
+- `account-baseline.yaml` defines UOS, Kubernetes, KubeSphere and Harbor account inventory, privileged-account review and credential handling.
+- `access-control-baseline.yaml` defines host, Kubernetes, network and application/platform access boundaries.
+
+All four capabilities use `PASS`, `FAIL`, `REVIEW` and `UNKNOWN`; `UNKNOWN` is never treated as safe. A finding that deviates from the desired state creates a Git Task with category `VULNERABILITY`, `PORT`, `ACCOUNT` or `ACCESS_CONTROL`.
+Evidence records metadata, hashes, redacted output, source and timestamp only; passwords, tokens, Secret values and mailbox bodies never enter Git, logs, DingTalk or Agent context. The V0.1 closure target is continuous manageability, not universal automatic remediation: discover, assess, create a task, remediate through an approved L0/L1/L2 path, rescan or re-audit, verify and close with evidence.
+
+Production RBAC, core firewall rules, Calico NetworkPolicy, Kubernetes API exposure, Harbor administration, production credentials and DA-SOC access-control changes remain L2 human-approved actions.
+
+## 11. Two-Clear-Two-Firm Metrics
+
+The existing Prometheus/Grafana/Alertmanager stack exposes the minimum measures below without introducing a separate security platform.
+
+| Metric | V0.1 target |
+|---|---|
+| Security component coverage | 100% of managed components and images |
+| Vulnerability assessment coverage | Current assessment or visible `UNKNOWN` for every managed component |
+| Port baseline coverage | 100% of managed hosts and critical services |
+| Privileged-account visibility | 100% of UOS, Kubernetes, KubeSphere and Harbor privileged identities |
+| RBAC/access-control audit coverage | 100% of declared host, Kubernetes, network and platform controls |
+| Unknown finding count | Visible and owned; never silently passed |
+| Remediation closure rate | Closed findings have verification evidence and an owner |
+| Audit completeness | Discovery, evidence, task, execution, verification and closure present |

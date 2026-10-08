@@ -569,3 +569,11 @@ NetworkPolicy/RBAC 安全边界失效
 3. 任何偏离本文件的实现必须先创建 ADR、说明影响、验证和回滚，再经人工批准。
 4. 不得在 Baseline 未冻结前开始 Kubernetes 实施。
 5. 不得以“测试环境”为理由取消安全、审计、备份、恢复和切换门槛。
+
+## 25. Two-Clear-Two-Firm Security Operations Addendum
+
+V0.1 纳入四项持续安全管理能力：清高危漏洞、清高危端口、固弱账号口令、固弱访问控制。漏洞和生命周期继续由 `07-aiops/component-lifecycle/` 的 CLM 管理；端口、账号和访问控制的 Desired State 分别位于 `04-security/port-baseline.yaml`、`04-security/account-baseline.yaml` 和 `04-security/access-control-baseline.yaml`，统一状态和证据规则位于 `04-security/security-baseline.yaml`。
+
+四项能力均使用 `Desired State → Observed State → Deviation → Risk → Task → Approval → Remediation → Verification → Audit`，状态只有 `PASS`、`FAIL`、`REVIEW`、`UNKNOWN`，且 `UNKNOWN` 不得当作安全。生产 RBAC、核心 firewall/Calico NetworkPolicy、Kubernetes API 暴露、生产账号/凭据、Harbor 管理权限和 DA-SOC 访问边界均为 L2。
+
+不引入 SIEM、SOAR、CMDB、NDR、完整 IAM、完整漏洞管理平台或新的安全基础设施；发现、判断、派单、整改、验证和审计复用现有 Kubernetes、KubeSphere、Calico、Harbor、Prometheus/Grafana/Alertmanager、Fluent Bit/Loki、Git 和短生命周期 Agent Job。

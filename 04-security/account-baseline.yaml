@@ -1,0 +1,69 @@
+schema_version: 0.1
+source_of_truth: git
+name: xuanwu-account-credential-baseline
+owner: security
+record_fields: [account, system, type, privilege, auth_method, last_used, default_account, shared_account, mfa, risk, status]
+discovery:
+  uos: [local_accounts, passwd_shadow_metadata, sudoers, sshd_config, lastlog, faillock]
+  kubernetes: [users, serviceaccounts, rolebindings, clusterrolebindings, secret_metadata]
+  kubesphere: [users, groups, rolebindings, administrator_bindings]
+  harbor: [users, robot_accounts, project_memberships, registry_credentials_metadata]
+  secret_values: never_collect
+checks:
+  - id: uos-root-ssh
+    system: uos
+    desired_state: root_ssh_login_disabled
+    severity: critical
+    approval_required: L2
+  - id: uos-password-ssh
+    system: uos
+    desired_state: password_ssh_login_disabled
+    severity: high
+    approval_required: L2
+  - id: empty-password
+    system: uos
+    desired_state: empty_password_false
+    severity: critical
+    approval_required: L2
+  - id: weak-password-policy
+    system: [uos, kubesphere, harbor]
+    desired_state: approved_complexity_and_rotation_policy
+    severity: high
+    approval_required: L2
+  - id: stale-privileged-account
+    system: [uos, kubesphere, harbor, kubernetes]
+    desired_state: privileged_accounts_have_owner_and_recent_use
+    review_after_days: 90
+    severity: high
+    approval_required: L2
+  - id: default-account
+    system: [kubesphere, harbor]
+    desired_state: default_admin_disabled_or_rotated_and_owned
+    severity: high
+    approval_required: L2
+  - id: cluster-admin-binding
+    system: kubernetes
+    desired_state: cluster_admin_is_break_glass_only
+    severity: critical
+    approval_required: L2
+  - id: high-privilege-serviceaccount
+    system: kubernetes
+    desired_state: serviceaccount_has_minimum_required_permissions
+    severity: critical
+    approval_required: L2
+  - id: shared-privileged-account
+    system: [uos, kubesphere, harbor]
+    desired_state: shared_privileged_account_forbidden_unless_exception
+    severity: high
+    approval_required: L2
+rules:
+  secret_value_protection: FAIL_AND_REDACT_AND_CREATE_INCIDENT
+  unknown_account_state: UNKNOWN_AND_CREATE_ACCOUNT_TASK
+  default_or_weak_account: FAIL_AND_CREATE_ACCOUNT_TASK
+verification:
+  methods: [configuration_recheck, permission_recheck, controlled_authentication_test]
+  controlled_authentication_test_rules: [never_store_password, never_log_password, never_test_against_production_mailbox]
+remediation:
+  L0: [inventory, assess, report, create_task]
+  L1: [disable_non_production_stale_account_with_approved_runbook]
+  L2: [change_production_credential_policy, disable_privileged_account, change_cluster_admin_binding, rotate_registry_credential]

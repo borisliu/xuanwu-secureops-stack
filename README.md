@@ -1267,3 +1267,11 @@ V0.1 Validation
 **Current Mission:** Securely host DA-SOC v0.1 and validate AI-Native
 Platform Operations\
 **Status:** Planning / Architecture
+
+## 27. V0.1 两清两固安全运营能力
+
+玄武云盾 V0.1 在既有架构上增加“两清两固”最小可管理闭环：清高危漏洞、清高危端口、固弱账号口令、固弱访问控制。高危漏洞复用 CLM；端口、账号和访问控制的期望状态分别由 `04-security/port-baseline.yaml`、`04-security/account-baseline.yaml`、`04-security/access-control-baseline.yaml` 管理，统一状态模型由 `04-security/security-baseline.yaml` 定义。
+
+四项能力都必须完成：发现 → 判断 → 任务 → 整改 → 验证 → 审计。`UNKNOWN` 不得默认为 PASS；真实密码、Token、Secret 值、邮箱正文和业务载荷不得进入 Git、日志、DingTalk、报告或 Agent 上下文。生产 RBAC、核心防火墙/NetworkPolicy、生产账号、Harbor 管理权限和 DA-SOC 访问控制继续使用 L2 人工审批。
+
+V0.1 不新增 SIEM、SOAR、CMDB、NDR、完整 IAM、完整漏洞管理平台或独立安全基础设施，也不承诺自动修复所有风险。

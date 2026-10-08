@@ -1163,6 +1163,10 @@ TASK-064/TASK-065/TASK-066 ─> TASK-067 ─> TASK-068
 TASK-004/TASK-005 ─> TASK-CLM-001 ─> TASK-CLM-002 ─> TASK-CLM-003
 TASK-CLM-003 ─> TASK-CLM-004 ─> TASK-CLM-005 ─> TASK-CLM-006
 TASK-CLM-006 ─> TASK-067 ─> TASK-068
+
+TASK-SEC-001 ─> TASK-SEC-002/TASK-SEC-003/TASK-SEC-004
+TASK-SEC-002/TASK-SEC-003/TASK-SEC-004 ─> TASK-SEC-005 ─> TASK-SEC-006
+TASK-SEC-006 ─> TASK-067 ─> TASK-068
 ```
 
 并行原则：同一阶段中无数据依赖的任务可以并行，但不得绕过安全、备份、证据和审批门禁。所有生产切换任务严格串行。
@@ -1217,6 +1221,64 @@ V0.1 只有在以下条件全部满足后才算完成：
 10. 至少一个 CrashLoopBackOff AI Ops 闭环完成 Observe→Analyze→Plan→Task→Approval→Execute→Verify→Audit→Rollback；Agent 使用 Job 且最小 RBAC。
 11. 所有任务有 Validation、Evidence、Approval、Rollback 和 Owner；所有关键风险、外部依赖和例外均登记。
 12. CLM 已覆盖 V0.1 组件，版本/digest 可自动发现，CVE/KEV/EOL 状态可追溯，升级判断可解释，Git Task/审批/验证/审计/回退闭环通过；生产自动升级保持禁用。
-13. 最终验收和交接完成，V0.2/V1.0 事项只进入演进清单，不提前进入 V0.1；根 `TODO.md` 是唯一实施任务源，未创建第二份 TODO。
+13. 两清两固已覆盖高危漏洞、高危端口、账号口令和访问控制；组件安全覆盖率、端口基线覆盖率、高权限账号可见率和访问控制审计覆盖率达到 100%，UNKNOWN 可见且不默认为 PASS。
+14. 最终验收和交接完成，V0.2/V1.0 事项只进入演进清单，不提前进入 V0.1；根 `TODO.md` 是唯一实施任务源，未创建第二份 TODO。
 
-> **执行停止条件：** 当 `TASK-CLM-006`、`TASK-067` 和 `TASK-068` 完成后停止本阶段工作，不直接开始新的 Kubernetes 实施或生成新的架构；后续实施只能依据本清单、Baseline 和 ADR 通过变更流程推进。
+> **执行停止条件：** 当 `TASK-CLM-006`、`TASK-SEC-006`、`TASK-067` 和 `TASK-068` 完成后停止本阶段工作，不直接开始新的 Kubernetes 实施或生成新的架构；后续实施只能依据本清单、Baseline 和 ADR 通过变更流程推进。
+
+## 20B. Two-Clear-Two-Firm Security Operations
+
+### TASK-SEC-001 — 定义两清两固安全基线和统一状态模型
+- **Objective:** 将漏洞、端口、账号口令和访问控制纳入统一 Desired/Observed/Deviation/Risk/Task/Approval/Remediation/Verification/Audit 模型。
+- **Inputs:** `04-security/security-baseline.yaml`、`04-security/port-baseline.yaml`、`04-security/account-baseline.yaml`、`04-security/access-control-baseline.yaml`、CLM Registry 和现有 L0/L1/L2 规则。
+- **Actions:** 冻结四类 finding、PASS/FAIL/REVIEW/UNKNOWN、证据脱敏、Owner、SLA、任务字段和 Git 审批规则；复用 TASK-004、TASK-005、TASK-CLM-001～004。
+- **Validation:** 四类基线均可加载；UNKNOWN 不会变成 PASS；密码、Token、Secret、邮箱正文和业务数据不进入 Git、日志、DingTalk 或 Agent 上下文。
+- **Expected Output:** 安全基线评审记录、字段校验结果、Owner 矩阵。
+- **Approval:** Security Owner、Governance Owner、Platform Owner。
+- **Dependencies:** TASK-004、TASK-005、TASK-CLM-001～004。
+- **Definition of Done:** 四类安全能力使用同一状态和任务模型，且审计字段完整。
+
+### TASK-SEC-002 — 建立高危端口发现与端口基线
+- **Objective:** 发现五台 VM、Kubernetes Service/NodePort/LoadBalancer/Ingress、Harbor、Kubernetes API 和其他监听端口。
+- **Actions:** 使用 `ss`、UOS firewall、nftables/iptables、Kubernetes API 和必要复扫；对照 `04-security/port-baseline.yaml`，未知端口进入 REVIEW，异常端口生成 `PORT` Task。
+- **Validation:** 管理 SSH、Kubernetes API、Harbor HTTPS、关闭端口和 NodePort 例外均有基线；expected closed 且实际 LISTEN 或来源越界时生成证据和整改任务。
+- **Approval:** Security Owner、Network Owner、Platform Owner。
+- **Rollback:** 只执行批准的低风险端口 Runbook；生产防火墙、Ingress、Calico 和核心业务端口变更走 L2。
+- **Dependencies:** TASK-008、TASK-018～021、TASK-SEC-001。
+- **Definition of Done:** 管理主机和关键服务端口基线覆盖率达到 100%，整改后可重新扫描验证。
+
+### TASK-SEC-003 — 建立账号与弱口令安全检查
+- **Objective:** 识别 UOS、Kubernetes、KubeSphere 和 Harbor 的高权限、默认、共享、长期不用和弱口令风险。
+- **Actions:** 只采集账号元数据、权限、使用时间、认证方式和策略状态；禁止采集或记录真实密码；复用 TASK-007、TASK-017、TASK-034～037。
+- **Validation:** root/SSH、sudo、ServiceAccount、cluster-admin、KubeSphere 管理员、Harbor admin/robot account 均可审计；无法确认的账号状态为 UNKNOWN 并生成任务。
+- **Approval:** Security Owner、Platform Owner、DA-SOC Owner。
+- **Rollback:** 生产账号禁用、凭据轮换和策略变更必须 L2；验证失败时恢复批准的账号/凭据版本。
+- **Dependencies:** TASK-007、TASK-017、TASK-026、TASK-035、TASK-SEC-001。
+- **Definition of Done:** 高权限账号可见率达到 100%，无真实密码进入 Git、日志、报告或 Agent Prompt。
+
+### TASK-SEC-004 — 审计 RBAC、Firewall、NetworkPolicy 和平台访问边界
+- **Objective:** 发现主机、Kubernetes、网络和应用/平台层的高风险访问路径。
+- **Actions:** 对照 `04-security/access-control-baseline.yaml` 审计 SSH/sudo、主机 firewall、RBAC、Secret 读取、Calico/Kubernetes NetworkPolicy、Harbor/n8n/DA-SOC 边界；生成 `ACCESS_CONTROL` Task。
+- **Validation:** default-deny、DA-SOC 允许路径、管理面隔离、Agent 只读边界和业务不得修改平台资源均有 allow/deny 证据。
+- **Approval:** Security Owner、Network Owner、Platform Owner、DA-SOC Owner。
+- **Rollback:** 生产 RBAC、核心 NetworkPolicy、核心 firewall 和 Secret 边界变更必须保留 diff、备份和 L2 回退路径。
+- **Dependencies:** TASK-017～021、TASK-034～037、TASK-SEC-001。
+- **Definition of Done:** 声明的主机、Kubernetes、网络和平台控制审计覆盖率达到 100%。
+
+### TASK-SEC-005 — 建立两清两固整改任务闭环
+- **Objective:** 将四类 finding 接入现有 Git Task、短生命周期 Job、审批、执行、复扫和审计流程。
+- **Actions:** 复用 TASK-060～063 的 Agent Job、Task YAML、L0/L1/L2、DingTalk 通知和审计；漏洞复用 TASK-CLM-003～006；端口、账号和访问控制使用对应基线的 remediation 与 verification。
+- **Validation:** 每个 finding 均包含 discovery、evidence、task、execution、verification、closure；L2 未审批时不得执行，失败可升级或回退。
+- **Approval:** Security Owner、AIOps Owner、Governance Owner。
+- **Rollback:** 停止相关 Job、撤销临时权限、恢复批准配置并保留原始证据。
+- **Dependencies:** TASK-SEC-001～004、TASK-060～063、TASK-CLM-003～006。
+- **Definition of Done:** 四类安全问题均可发现、判断、派单、整改、验证和审计。
+
+### TASK-SEC-006 — 两清两固 V0.1 综合验收
+- **Objective:** 以真实证据验收两清两固最小可管理闭环，不建设独立安全平台。
+- **Actions:** 执行高危漏洞、异常端口、弱账号和高风险访问路径样例；验证指标、UNKNOWN 可见性、任务关闭率、审计完整性和 DingTalk/Prometheus/Grafana 视图。
+- **Validation:** 组件安全覆盖率 100%；关键主机/服务端口基线 100%；高权限账号可见率 100%；RBAC/访问控制审计覆盖率 100%；每个样例有完整闭环证据。
+- **Approval:** Platform Owner、Security Owner、DA-SOC Owner、Business Owner。
+- **Rollback:** 验收失败只回到对应专项任务，不扩大 V0.1 范围，不自动修改生产安全控制。
+- **Dependencies:** TASK-SEC-002～005、TASK-067。
+- **Definition of Done:** 两清两固验收通过并纳入 TASK-067/TASK-068 交接，未通过项有 Owner、风险等级、期限和回退计划。

@@ -43,6 +43,11 @@
 | CLM Git 目录、分支保护和审批人 | Governance Owner | TASK-CLM-001 | TASK-CLM-005 | TBD / BLOCKING | YAML schema、CODEOWNERS、PR 审批 |
 | 升级验证环境、备份点和组件 Runbook | Platform/Backup/Component Owner | TASK-CLM-005 | TASK-CLM-006 | TBD / BLOCKING | 兼容性、backup hash、验证/回退证据 |
 
+| 两清两固 Git 安全基线和 CODEOWNERS | Security/Governance Owner | TASK-SEC-001 | TASK-SEC-001 | TBD / BLOCKING | `04-security/` 四份 YAML、审批人和字段校验 |
+| 五台 VM、关键 Service、Ingress、NodePort 和 Harbor 端口清单 | Security/Network/Platform Owner | TASK-SEC-002 | TASK-SEC-002 | TBD / BLOCKING | ss/firewall/Kubernetes discovery evidence |
+| UOS/Kubernetes/KubeSphere/Harbor 账号元数据和最近使用信息 | Security/Platform/DA-SOC Owner | TASK-SEC-003 | TASK-SEC-003 | TBD / BLOCKING | 仅元数据；禁止提供真实密码 |
+| RBAC、NetworkPolicy、Firewall 和平台访问路径测试环境 | Security/Network/Platform Owner | TASK-SEC-004 | TASK-SEC-004 | TBD / BLOCKING | allow/deny 测试、diff、回退证据 |
+| 两清两固样例 finding 和批准的整改 Runbook | Security/Component Owner | TASK-SEC-005 | TASK-SEC-006 | TBD / BLOCKING | 漏洞、端口、账号、访问控制各至少一个样例 |
 ## 1. Ownership Rule
 
 Owner 不能填写“Agent”。Agent 可以执行已批准任务，但不能批准外部依赖、生产窗口或安全例外。

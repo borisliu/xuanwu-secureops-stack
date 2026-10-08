@@ -24,3 +24,8 @@
 | RISK-CLM-003 | 漏洞或 EOL 数据过期/误判 | High | Source/Last Updated 超过 freshness 或 affected 判断缺失 | 记录来源、时间和 affected；过期状态为 REVIEW | freshness、KEV、EOL 和 unknown 指标 | 不自动升级，转人工复核 | Security |
 | RISK-CLM-004 | CLM 自动生成升级 Task 绕过审批 | Critical | Job 获得写权限或生产 trigger 被启用 | L0/L1/L2、最小 RBAC、Git 分支保护、生产自动升级禁用 | Audit、Role review、Task/Job 状态 | 撤销 SA/Role，关闭 Job，创建 Incident | Security/AIOps |
 | RISK-CLM-005 | 升级后验证或回退不完整 | High | 无 backup/checkpoint、兼容性或业务 golden test 证据 | 升级前备份，组件 Runbook，自动 post-discovery/verify | Upgrade Closure Rate、rollback evidence | 冻结后续升级，按 Runbook 恢复 | Platform/Component |
+| RISK-SEC-001 | 安全基线与运行态发现不一致 | High | Desired State 未冻结或发现证据过期 | Git 基线、发现新鲜度和 Owner 评审 | Prometheus/Grafana、UNKNOWN 指标、审计复核 | 停止整改判断，转人工确认 | Security/Platform |
+| RISK-SEC-002 | 未知或高危端口未被识别 | High | ss、firewall、Kubernetes API 或 Ingress 发现不完整 | 主机与 Kubernetes 双重发现、24 小时复扫、未登记端口 REVIEW | 端口覆盖率、异常端口告警 | 阻断切换，人工检查并回到批准规则 | Security/Network |
+| RISK-SEC-003 | 弱账号整改导致生产访问中断 | Critical | 自动禁用默认/高权限账号或凭据轮换无回退 | 只采集元数据、生产变更 L2、备份/回退和专用验证 | 账号审计、登录失败、审批记录 | 恢复批准凭据/绑定，暂停 Agent | Security/Platform |
+| RISK-SEC-004 | RBAC/NetworkPolicy/防火墙误收敛 | Critical | 访问路径基线遗漏或整改范围过大 | allow/deny 测试、变更 diff、验证 Namespace、L2 审批 | 越权测试、拒绝流量、业务 SLI | 立即回退策略并冻结后续变更 | Security/Network |
+| RISK-SEC-005 | 敏感凭据进入证据或日志 | Critical | 密码、Token、Secret 或邮箱正文被采集 | 脱敏校验、禁止采集 Secret 值、日志审查 | Loki/Git/DingTalk 检查、泄露告警 | 隔离证据、轮换凭据、创建 Incident | Security/AIOps |

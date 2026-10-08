@@ -1,0 +1,34 @@
+schema_version: 0.1
+source_of_truth: git
+name: xuanwu-two-clear-two-firm
+scope: [platform, da-soc, managed-images]
+state_model:
+  statuses: [PASS, FAIL, REVIEW, UNKNOWN]
+  unknown_is_pass: false
+  lifecycle: [discovered, assessed, task-created, approval-pending, remediation, verifying, closed, escalated]
+task_model:
+  categories: [VULNERABILITY, PORT, ACCOUNT, ACCESS_CONTROL]
+  required_fields: [id, category, asset, finding, severity, evidence, expected_state, observed_state, remediation, approval_required, owner, status, verification, rollback]
+  evidence_rules:
+    required_stages: [discovery, assessment, task, execution, verification, closure]
+    sources: [kubernetes, kubesphere, uos, firewall, calico, harbor, prometheus, loki, git, offline-import]
+    secret_values_allowed: false
+    password_values_allowed: false
+    mailbox_body_allowed: false
+approval:
+  L0: [discover, assess, report, create_task, notify]
+  L1: [non_production_remediation, approved_low_risk_runbook]
+  L2:
+    required_for: [production_account, production_rbac, cluster_admin, firewall_core_rule, calico_core_networkpolicy, kubernetes_api, harbor_admin_or_robot, da_soc_access_control, core_business_port, os_or_platform_upgrade]
+    requires: [human_approval, change_diff, backup_or_checkpoint, rollback_plan, audit_record]
+privacy:
+  prohibited_in_git: [password, private_key, token, secret_value]
+  prohibited_in_logs: [password, private_key, token, secret_value, mailbox_body, business_payload]
+  allowed_evidence: [metadata, hash, redacted_output, reference, result]
+cadence:
+  component_vulnerability_hours: 168
+  port_discovery_hours: 24
+  account_discovery_hours: 24
+  access_control_audit_hours: 24
+  stale_status: REVIEW
+metrics: [security_component_coverage, vulnerability_assessment_coverage, port_baseline_coverage, privileged_account_visibility, rbac_audit_coverage, unknown_finding_count, remediation_closure_rate, audit_completeness]

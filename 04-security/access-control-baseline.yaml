@@ -1,0 +1,73 @@
+schema_version: 0.1
+source_of_truth: git
+name: xuanwu-access-control-baseline
+owner: security
+record_fields: [layer, subject, resource, action, source, desired_state, observed_state, deviation, risk, owner, approval_required, status]
+layers:
+  host:
+    controls:
+      - id: ssh-management-source
+        desired_state: management_network_or_bastion_only
+        discovery: [sshd_config, firewall_rules, connection_logs]
+        approval_required: L2
+      - id: root-and-sudo
+        desired_state: root_login_disabled_and_sudo_named_and_minimal
+        discovery: [sshd_config, sudoers, local_accounts]
+        approval_required: L2
+      - id: host-firewall
+        desired_state: default_deny_with_registered_exceptions
+        discovery: [nftables, iptables, uos_firewall]
+        approval_required: L2
+  kubernetes:
+    controls:
+      - id: rbac-minimum-privilege
+        desired_state: no_unjustified_cluster_admin_or_wildcard_privilege
+        discovery: [roles, clusterroles, rolebindings, clusterrolebindings, serviceaccounts]
+        approval_required: L2
+      - id: secret-boundary
+        desired_state: secret_read_is_namespace_and_workload_scoped
+        discovery: [role_rules, rolebindings, pod_serviceaccounts, secret_metadata]
+        approval_required: L2
+      - id: agent-boundary
+        desired_state: agent_job_is_read_only_by_default
+        discovery: [serviceaccounts, roles, jobs]
+        approval_required: L2
+  network:
+    controls:
+      - id: namespace-default-deny
+        desired_state: da-soc_has_default_deny_ingress_and_egress
+        discovery: [calico_networkpolicy, kubernetes_networkpolicy]
+        approval_required: L2
+      - id: da-soc-allow-list
+        desired_state: only_dns_render_archive_clickhouse_mail_and_dingtalk_paths_allowed
+        discovery: [networkpolicy, service, endpoint, flow_evidence]
+        approval_required: L2
+      - id: management-plane-isolation
+        desired_state: api_server_kubesphere_harbor_and_etcd_not_business_or_publicly_exposed
+        discovery: [firewall_rules, service, ingress, networkpolicy]
+        approval_required: L2
+  application_platform:
+    controls:
+      - id: harbor-scope
+        desired_state: project_and_robot_permissions_are_scoped_and_owned
+        discovery: [harbor_api, project_memberships, robot_accounts]
+        approval_required: L2
+      - id: n8n-secret-scope
+        desired_state: n8n_reads_only_approved_business_secrets
+        discovery: [workload, serviceaccount, secret_metadata, workflow_metadata]
+        approval_required: L2
+      - id: business-platform-boundary
+        desired_state: da_soc_cannot_modify_platform_rbac_network_storage_or_nodes
+        discovery: [rbac, networkpolicy, workload_security_context]
+        approval_required: L2
+rules:
+  high_risk_path: FAIL_AND_CREATE_ACCESS_CONTROL_TASK
+  missing_evidence: UNKNOWN_AND_CREATE_ACCESS_CONTROL_TASK
+  agent_escalation: BLOCK_AND_ESCALATE_TO_L2
+verification:
+  methods: [rbac_can_i, policy_simulation, allow_path_test, deny_path_test, firewall_recheck]
+  required_results: [allowed_paths_pass, denied_paths_blocked, evidence_recorded]
+remediation:
+  L0: [audit, report, create_task]
+  L1: [non_production_low_risk_policy_change_with_approved_runbook]
+  L2: [production_rbac_change, core_networkpolicy_change, firewall_core_rule_change, production_secret_boundary_change]

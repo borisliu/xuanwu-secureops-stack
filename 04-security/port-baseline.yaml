@@ -1,0 +1,80 @@
+schema_version: 0.1
+source_of_truth: git
+name: xuanwu-port-exposure-baseline
+owner: security
+discovery:
+  host_listeners: [ss, nftables, iptables, uos_firewall]
+  kubernetes: [service, nodeport, loadbalancer, ingress, endpoint]
+  external_services: [harbor_api, kubernetes_api, kubesphere_api]
+  rescan_after_remediation: true
+record_fields: [host, port, protocol, service, purpose, expected_state, allowed_source, risk_level, owner, port_required, port_reason, priority, expected_source, actual_source, status]
+baseline:
+  - id: management-ssh
+    host_selector: [xw-cp-01, xw-wk-01, xw-wk-02, xw-harbor-01, xw-backup-01]
+    port: 22
+    protocol: tcp
+    service: ssh
+    purpose: management access
+    expected_state: open
+    allowed_source: [management-network, bastion]
+    risk_level: high
+    owner: infrastructure
+    port_required: YES
+    priority: P1
+  - id: kubernetes-api
+    host_selector: [xw-cp-01]
+    port: 6443
+    protocol: tcp
+    service: kube-apiserver
+    purpose: Kubernetes API
+    expected_state: open
+    allowed_source: [management-network, approved-cluster-nodes]
+    risk_level: critical
+    owner: platform
+    port_required: YES
+    priority: P0
+  - id: harbor-https
+    host_selector: [xw-harbor-01]
+    port: 443
+    protocol: tcp
+    service: harbor
+    purpose: registry and administration over HTTPS
+    expected_state: open
+    allowed_source: [management-network, approved-cluster-nodes, approved-build-source]
+    risk_level: high
+    owner: registry
+    port_required: YES
+    priority: P1
+  - id: public-http
+    host_selector: [xw-cp-01, xw-wk-01, xw-wk-02, xw-harbor-01, xw-backup-01]
+    port: 80
+    protocol: tcp
+    service: any
+    purpose: unapproved plaintext exposure
+    expected_state: closed
+    allowed_source: []
+    risk_level: high
+    owner: security
+    port_required: NO
+    priority: P1
+  - id: unmanaged-nodeport
+    host_selector: [xw-cp-01, xw-wk-01, xw-wk-02]
+    port: 30000-32767
+    protocol: tcp
+    service: kubernetes-nodeport
+    purpose: registered exception only
+    expected_state: closed
+    allowed_source: []
+    risk_level: high
+    owner: platform
+    port_required: REVIEW
+    priority: P1
+rules:
+  unexpected_listen: FAIL_AND_CREATE_PORT_TASK
+  source_overreach: FAIL_AND_CREATE_PORT_TASK
+  unregistered_port: REVIEW_AND_CREATE_PORT_TASK
+  stale_discovery: UNKNOWN_AND_CREATE_PORT_TASK
+remediation:
+  L0: [record, notify, create_task]
+  L1: [close_non_production_low_risk_port_with_approved_runbook]
+  L2: [close_production_port, change_firewall_core_rule, change_calico_or_ingress_exposure]
