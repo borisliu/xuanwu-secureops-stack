@@ -1140,7 +1140,27 @@ Knowledge Update
 
 ## 23. 当前项目状态
 
-**当前版本：V0.1 --- Planning / Architecture**
+**当前版本：V0.1 --- Architecture Frozen / Implementation TODO Ready**
+
+### V0.1 OS 与云原生版本基线
+
+当前记录的是候选基线，不是官方认证的完整组合：
+
+| Component | Candidate | Status |
+|---|---|---|
+| OS | 统信服务器操作系统 V20 1060e AMD64（免费使用授权） | Candidate / Pending Compatibility Validation |
+| Kubernetes | v1.30.6 | Candidate / Pending Compatibility Validation |
+| KubeSphere | 4.1.x，优先验证 4.1.2 | Candidate / Pending Compatibility Validation |
+| containerd | 1.7.x | Candidate / Pending Compatibility Validation |
+| CNI | Calico | Candidate / Pending Compatibility Validation |
+
+上述组合必须经过官方兼容矩阵核对、OS 介质校验、实际安装、节点加入、网络、存储、Harbor、观测、DA-SOC 和恢复验证后，才能在 `09-implementation/VERSION-MATRIX.md` 中冻结。当前安装尚未开始。
+
+### V0.1 Component Lifecycle Management
+
+玄武云盾 V0.1 同时具备组件生命周期管理（CLM）最小闭环。CLM 使用 Git 中的 `07-aiops/component-lifecycle/` 作为期望状态、策略和审计规则的 Source of Truth，由短生命周期 Job 按组件类型自动发现 OS、Kubernetes、KubeSphere、containerd、Calico、Harbor、DA-SOC 和 Observability 的当前版本与镜像 digest。
+
+CLM 将 **Component Registry**、**Vulnerability State** 和 **Upgrade State** 分开维护；它可以发现版本、记录 CVE/CVSS/KEV/EOL、解释 `upgrade_required`、生成 Git Upgrade Task、执行 L0/L1/L2 审批、验证和回退，但不是独立漏洞平台，也不会自动升级生产环境。未知版本必须标记为高风险，不能被当作安全。
 
 当前首要任务：
 

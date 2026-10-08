@@ -9,7 +9,24 @@
 - 唯一架构依据：`10-decisions/ARCHITECTURE-BASELINE-V0.1.md`
 - 决策依据：`10-decisions/ADR/ADR-001-da-soc-hosting.md` 至 `ADR-008-task-model.md`
 - 实施范围：平台基础设施、Kubernetes/KubeSphere、DA-SOC 承载迁移、备份恢复、AI Ops MVP 和最终验收
-- 明确不做：修改 `TODO.md`、重新设计架构、直接开始 Kubernetes 实施、把 V0.2/V1.0 组件提前引入
+- 明确不做：创建第二份 TODO、重新设计架构、直接开始 Kubernetes 实施、把 V0.2/V1.0 组件提前引入；本次仅同步根 `TODO.md` 中既有版本/实施任务。
+
+## 0. Version Baseline Status
+
+| 项目 | 当前状态 |
+|---|---|
+| Architecture | FROZEN |
+| Implementation TODO | READY；从 `TASK-001` 开始 |
+| OS | 统信服务器操作系统 V20 1060e AMD64；Candidate / Pending Compatibility Validation |
+| Kubernetes | v1.30.6；Candidate / Pending Compatibility Validation |
+| KubeSphere | 4.1.x，优先验证 4.1.2；Candidate / Pending Compatibility Validation |
+| containerd | 1.7.x；Candidate / Pending Compatibility Validation |
+| CNI | Calico；Candidate / Pending Compatibility Validation |
+| VM Resource Request | READY |
+| Version Matrix | Pending Freeze |
+| Installation | NOT STARTED |
+
+> 上述 OS + Kubernetes + KubeSphere + containerd + Calico 仅是 V0.1 候选组合，不代表官方认证的完整组合。只有完成官方兼容矩阵核对和项目实际安装验证后，才能改为 `Frozen`。
 
 ## 1. Implementation Overview
 
@@ -45,7 +62,7 @@
 5. 所有高风险动作走 Git Task、审批和审计；Agent 不得修改架构、RBAC、NetworkPolicy、StorageClass、节点、etcd 或生产数据。
 6. 任何关键门禁失败即 NO-GO；不得用“先上线再修”替代 Cutover Gate。
 7. 实施发现架构矛盾时，状态为 `Architecture Blocker`，暂停受影响任务并提交架构 Owner；不得私自扩展组件。
-8. `TODO.md`、Baseline 和 ADR 在本阶段只读。
+8. Baseline 和 ADR 在本阶段只读；本次版本基线补充允许修订根目录 `TODO.md` 及 `09-implementation/` 的实施附件，但不得创建第二份 TODO 或修改已冻结架构结论。
 
 ## 4. Phase 0 — Parameter Freeze
 
@@ -53,7 +70,7 @@
 - **Objective:** 建立唯一参数冻结工作项和责任人矩阵。
 - **Preconditions:** 已阅读 README、Baseline、ADR-001～008。
 - **Inputs:** 架构文件、`09-implementation/` 附件、Owner 名单。
-- **Actions:** 创建变更记录；登记 Platform/Security/DA-SOC/Backup/Business/Network/Registry Owner；标记所有 TBD 参数。
+- **Actions:** 创建变更记录；登记 Platform/Security/DA-SOC/Backup/Business/Network/Registry Owner；标记所有 TBD 参数；登记 UOS Server V20 1060e AMD64、Kubernetes v1.30.6、KubeSphere 4.1.x（优先验证 4.1.2）、containerd 1.7.x 和 Calico 的 Candidate 状态及其验证 Owner。
 - **Validation:** Owner、审批人、回退负责人均已实名；没有未归属的关键参数。
 - **Expected Output:** 参数冻结记录、责任矩阵、变更编号。
 - **Risk:** 责任不清导致安装绕过门禁。
@@ -61,21 +78,21 @@
 - **Rollback:** 删除未批准的参数草案，不影响 Baseline。
 - **Evidence:** Git commit、责任矩阵、会议/审批记录。
 - **Dependencies:** 无。
-- **Definition of Done:** 所有冻结项均有 Owner、状态和截止时间。
+- **Definition of Done:** 所有冻结项均有 Owner、状态和截止时间；OS/云原生候选基线已写入 `VERSION-MATRIX.md`，但未被误标为 Frozen。
 
 ### TASK-002 — 冻结版本、镜像和 digest
-- **Objective:** 将 `VERSION-MATRIX.md` 中的 TBD 转为可执行的精确版本和 digest。
+- **Objective:** 将候选版本、官方兼容矩阵、实际验证结果和镜像 digest 转为可执行的版本冻结记录。
 - **Preconditions:** TASK-001 完成；可访问 KubeSphere 官方兼容矩阵和离线包。
 - **Inputs:** `09-implementation/VERSION-MATRIX.md`、官方兼容性矩阵、镜像仓库清单。
-- **Actions:** 选择 OS、kernel、containerd、Kubernetes、KubeSphere、Calico、local-path、Harbor、Ingress、Prometheus、Grafana、Alertmanager、Fluent Bit、Loki、ClickHouse、Agent、SOPS/age 版本；记录 digest、校验和、来源和回滚版本。
-- **Validation:** 兼容矩阵通过；所有生产镜像均非 `latest`；离线包可校验。
+- **Actions:** 记录 UOS Server V20 1060e AMD64、Kubernetes v1.30.6、KubeSphere 4.1.x（优先验证 4.1.2）、containerd 1.7.x 和 Calico 的候选状态；核对 KubeSphere 官方兼容矩阵；选择 kernel、local-path、Harbor、Ingress、Prometheus、Grafana、Alertmanager、Fluent Bit、Loki、ClickHouse、Agent、SOPS/age 的精确版本；记录 digest、校验和、来源和回滚版本。
+- **Validation:** 兼容矩阵和实际安装验证均通过；明确区分官方资料、项目组合验证和历史安全评估；所有生产镜像均非 `latest`；离线包可校验。
 - **Expected Output:** 冻结后的版本矩阵和镜像 manifest。
 - **Risk:** 版本不兼容造成集群或 DA-SOC 不可用。
 - **Approval:** Platform Owner、Security Owner、DA-SOC Owner。
 - **Rollback:** 不安装未冻结版本，回到待冻结状态。
 - **Evidence:** 兼容矩阵快照、digest、SHA256、审批 commit。
 - **Dependencies:** TASK-001。
-- **Definition of Done:** `VERSION-MATRIX.md` 无未处理的安装相关 TBD，或每个剩余 TBD 有明确 Blocked 状态和替代路径。
+- **Definition of Done:** `VERSION-MATRIX.md` 中所有安装相关参数均为 Frozen，或有明确 Pending/Blocked 状态、Owner、替代路径和截止时间；未经组合验证不得宣称 UOS/Kubernetes/KubeSphere 为官方认证组合。
 
 ### TASK-003 — 冻结 Secret 管理和恢复方案
 - **Objective:** 确定 Secret 的生成、注入、轮换、备份和灾备恢复路径。
@@ -95,7 +112,7 @@
 - **Objective:** 确定 Git 中的架构、治理、安全、平台、任务和 DA-SOC workflow 事实来源。
 - **Preconditions:** TASK-001～003 完成。
 - **Inputs:** Baseline、ADR、现有仓库目录、DA-SOC workflow 源码。
-- **Actions:** 规划 `architecture/`、`governance/`、`security/`、`platform/`、`manifests/`、`tasks/`、`runbooks/`、`da-soc/workflows/`、`backup/`、`incidents/`；配置主分支保护、双人审批、签名/审计；定义 generated artifact 与源文件关系；Secrets 仅保存加密引用。
+- **Actions:** 规划 `architecture/`、`governance/`、`security/`、`platform/`、`manifests/`、`tasks/`、`runbooks/`、`da-soc/workflows/`、`backup/`、`incidents/` 和 `07-aiops/component-lifecycle/`；配置主分支保护、双人审批、签名/审计；定义 generated artifact 与源文件关系；Secrets 仅保存加密引用。
 - **Validation:** 任一部署配置都能追溯到 Git commit；workflow 可由源文件生成 artifact；无明文 Secret。
 - **Expected Output:** Git layout、分支规则、CODEOWNERS/审批规则、drift 检查规则。
 - **Risk:** 手工配置漂移或未审查变更进入生产。
@@ -103,13 +120,13 @@
 - **Rollback:** 禁止直接 apply 未审查分支，恢复到最近批准 commit。
 - **Evidence:** 仓库树、保护规则截图/导出、示例 PR、drift 报告。
 - **Dependencies:** TASK-001、TASK-003。
-- **Definition of Done:** Git 被正式声明为 Architecture、Governance、Security Policy、NetworkPolicy、RBAC、Runbook、Task、ADR、Backup configuration 和 DA-SOC workflow 的 Source of Truth；运行时数据和明文 Secret 不入 Git。
+- **Definition of Done:** Git 被正式声明为 Architecture、Governance、Security Policy、NetworkPolicy、RBAC、Runbook、Task、ADR、Backup configuration、DA-SOC workflow 和 CLM component/policy/rule 的 Source of Truth；运行时数据和明文 Secret 不入 Git。
 
 ### TASK-005 — 建立实施门禁、变更和证据目录
 - **Objective:** 让每项任务、审批、事故和证据可追踪。
 - **Preconditions:** TASK-001～004 完成。
 - **Inputs:** 任务清单、外部依赖、风险表、Cutover/Restore/Rollback 附件。
-- **Actions:** 创建任务状态模型 `PENDING/IN_PROGRESS/BLOCKED/PASSED/ROLLED_BACK`；定义证据目录、Incident/Change ID、审批记录和保留周期；登记未决外部依赖。
+- **Actions:** 创建任务状态模型 `PENDING/IN_PROGRESS/BLOCKED/PASSED/ROLLED_BACK`；定义证据目录、Incident/Change ID、审批记录和保留周期；登记未决外部依赖；定义 CLM discovery、vulnerability、upgrade、approval、verification 和 rollback evidence 的关联字段。
 - **Validation:** 用演练任务走通创建、审批、执行、证据归档和回退。
 - **Expected Output:** 实施门禁模板、证据目录、变更模板。
 - **Risk:** 完成状态无法审计或恢复。
@@ -117,15 +134,15 @@
 - **Rollback:** 恢复到上一版流程模板，不修改架构文件。
 - **Evidence:** 模板 commit、演练记录、依赖登记。
 - **Dependencies:** TASK-001～004。
-- **Definition of Done:** 后续 TASK-006～068 均能引用统一 Change/Task/Evidence ID。
+- **Definition of Done:** 后续平台任务和 CLM 任务均能引用统一 Change/Task/Evidence ID，且组件状态、升级判断和审批可审计。
 
 ## 5. Phase 1 — Infrastructure
 
 ### TASK-006 — 交付五台 VM 和数据盘
 - **Objective:** 按 Baseline 交付五个故障域清晰的 VM。
 - **Preconditions:** TASK-002 完成；基础设施依赖已确认。
-- **Inputs:** VM 拓扑、规格、磁盘规划、`EXTERNAL-DEPENDENCIES.md`。
-- **Actions:** 创建 `xw-cp-01`（4–8 vCPU/16 GiB/100 GiB）、`xw-wk-01`（8/32/300 GiB）、`xw-wk-02`（8/32/500 GiB）、`xw-harbor-01`（4/8/500 GiB）、`xw-backup-01`（4/8/按数据量起步 1 TiB）；确认独立数据盘、快照策略和故障域。
+- **Inputs:** VM 拓扑、规格、磁盘规划、UOS Server V20 1060e AMD64 安装介质依赖、`EXTERNAL-DEPENDENCIES.md`。
+- **Actions:** 创建 `xw-cp-01`（4–8 vCPU/16 GiB/100 GiB）、`xw-wk-01`（8/32/300 GiB）、`xw-wk-02`（8/32/500 GiB）、`xw-harbor-01`（4/8/500 GiB）、`xw-backup-01`（4/8/按数据量起步 1 TiB）；确认独立数据盘、快照策略、故障域、OS 安装入口和介质导入路径。
 - **Validation:** 主机名、CPU、内存、数据盘和宿主故障域符合基线；控制面、Harbor、备份未合并。
 - **Expected Output:** VM inventory、磁盘挂载表、资产标签。
 - **Risk:** 资源不足或故障域合并。
@@ -136,11 +153,11 @@
 - **Definition of Done:** 五台 VM 均可通过管理路径访问且数据盘已识别。
 
 ### TASK-007 — 固化 OS、SSH、NTP 和主机安全基线
-- **Objective:** 将五台 VM 统一到批准的 Linux LTS 和安全基线。
-- **Preconditions:** TASK-006 完成；OS 版本已冻结。
-- **Inputs:** 版本矩阵、主机安全基线、企业 NTP/DNS、管理 VPN/堡垒机要求。
-- **Actions:** 安装批准 OS；禁用 swap（例外需记录）；配置 containerd 前置依赖、chrony、Asia/Shanghai、auditd、journald 持久化、安全补丁、最小 sudo、非 root SSH；禁止共享管理员密码。
-- **Validation:** 五台主机版本、时间偏差、swap、审计、SSH 和补丁状态通过。
+- **Objective:** 在五台 VM 上安装候选 UOS Server V20 1060e AMD64，并固化主机安全基线。
+- **Preconditions:** TASK-006 完成；OS ISO/介质 SHA256、来源和免费使用授权已确认；OS 仍标记为 Candidate。
+- **Inputs:** `VERSION-MATRIX.md`、UOS 安装介质、授权确认、主机安全基线、企业 NTP/DNS、管理 VPN/堡垒机要求。
+- **Actions:** 校验并安装 UOS Server V20 1060e AMD64；记录架构、内核和软件源；禁用 swap（例外需记录）；配置 containerd 前置依赖、chrony、Asia/Shanghai、auditd、journald 持久化、安全补丁、最小 sudo、非 root SSH；禁止共享管理员密码；不得将该组合描述为官方认证或 SLA。
+- **Validation:** 五台主机 OS 版本、AMD64 架构、ISO/介质 hash、授权记录、时间偏差、swap、审计、SSH、软件源和补丁状态通过；与 UOS 安全基线冲突项形成验证记录。
 - **Expected Output:** 主机基线报告。
 - **Risk:** 时间漂移破坏证书、审计和 workflow 去重。
 - **Approval:** Security Owner、Infrastructure Owner。
@@ -166,7 +183,7 @@
 ### TASK-009 — 安装 containerd 和节点运行时前置项
 - **Objective:** 让节点具备与冻结 Kubernetes 版本兼容的容器运行时。
 - **Preconditions:** TASK-002、TASK-007、TASK-008 完成。
-- **Inputs:** containerd 版本、内核模块、sysctl、镜像加速/Harbor CA。
+- **Inputs:** `VERSION-MATRIX.md` 中的 containerd 1.7.x 候选版本、UOS 内核模块、sysctl、镜像加速/Harbor CA。
 - **Actions:** 安装 containerd；配置 systemd cgroup、内核模块、IP forwarding、br_netfilter、日志轮转、Harbor CA 和 registry mirror（如批准）；不安装 Docker daemon 作为 Kubernetes 运行时。
 - **Validation:** `containerd` 健康；cgroup、sysctl、模块和证书检查通过；可在非生产测试镜像上拉取。
 - **Expected Output:** 三台 K8s 节点运行时报告。
@@ -181,8 +198,8 @@
 - **Objective:** 在安装 Kubernetes 前一次性验证所有主机前置条件。
 - **Preconditions:** TASK-006～009 完成。
 - **Inputs:** Preflight 脚本、版本矩阵、网络/磁盘/安全基线。
-- **Actions:** 检查 CPU/内存/磁盘 inode、挂载点、时间、DNS、端口、内核、containerd、SSH、证书、备份目标和 Harbor 包；输出失败项并阻断后续安装。
-- **Validation:** 所有必检项 PASS；任何 WARN 均有批准的处置记录。
+- **Actions:** 检查 OS release/架构/ISO hash、CPU/内存/磁盘 inode、挂载点、时间、DNS、端口、内核、containerd、SSH、cgroup、swap、sysctl、firewall、SELinux/安全模块、iptables/nftables、证书、备份目标和 Harbor 包；输出失败项并阻断后续安装。
+- **Validation:** UOS OS 基线和所有必检项 PASS；任何 WARN 均有批准的处置记录；不得把未验证的 OS/Kubernetes/KubeSphere 组合标记为 Frozen。
 - **Expected Output:** Preflight 报告和安装放行单。
 - **Risk:** 隐藏前置故障在集群阶段暴露。
 - **Approval:** Platform Owner、Infrastructure Owner。
@@ -196,9 +213,9 @@
 ### TASK-011 — 初始化单 Control Plane Kubernetes 集群
 - **Objective:** 按 Baseline 初始化 `xw-cp-01` + `xw-wk-01` + `xw-wk-02` 集群。
 - **Preconditions:** TASK-002、TASK-010 通过；Kubernetes 版本已冻结。
-- **Inputs:** kubeadm/安装清单、Pod/Service CIDR、containerd 配置、节点 inventory。
-- **Actions:** 初始化 Control Plane 和 etcd；保存 join 信息到受控加密位置；加入两个 Worker；设置节点标签和 Control Plane `NoSchedule` 污点；不部署额外控制面节点。
-- **Validation:** `kubectl get nodes` 全部 Ready；CoreDNS、kube-proxy 和 etcd 健康；节点角色符合基线。
+- **Inputs:** `VERSION-MATRIX.md`、Kubernetes v1.30.6 安装包/镜像、KubeSphere 兼容矩阵、Pod/Service CIDR、containerd 配置、节点 inventory。
+- **Actions:** 仅使用批准的 Kubernetes v1.30.6 安装路径初始化 Control Plane 和 etcd；保存 join 信息到受控加密位置；加入两个 Worker；设置节点标签和 Control Plane `NoSchedule` 污点；不部署额外控制面节点；记录 UOS + Kubernetes 组合仍为 Candidate。
+- **Validation:** `kubectl get nodes` 全部 Ready；CoreDNS、kube-proxy 和 etcd 健康；节点角色符合基线；安装、加入、重启和恢复报告通过后才允许推进 KubeSphere 验证。
 - **Expected Output:** 可用单集群、集群凭据和初始化证据。
 - **Risk:** 单控制面故障导致管理面中断。
 - **Approval:** Platform Owner、Security Owner。
@@ -254,9 +271,9 @@
 ### TASK-015 — 安装 KubeSphere 管理面
 - **Objective:** 在已验证 Kubernetes 上安装批准版本 KubeSphere。
 - **Preconditions:** TASK-011～014 通过；KubeSphere 兼容矩阵已冻结。
-- **Inputs:** KubeSphere manifest、版本 digest、访问域名、TLS 证书。
-- **Actions:** 仅安装 Baseline 所需管理组件；使用独立管理员入口和最小权限；不额外引入多集群、DevOps、Service Mesh 或扩展运行时能力。
-- **Validation:** KubeSphere 控制台、API、项目管理、监控入口正常；组件版本符合矩阵。
+- **Inputs:** `VERSION-MATRIX.md`、KubeSphere 4.1.x 候选安装包（优先验证 4.1.2）、官方兼容矩阵、版本 digest、访问域名、TLS 证书。
+- **Actions:** 先在独立验证环境按官方兼容路径验证 KubeSphere 4.1.x；仅安装 Baseline 所需管理组件；使用独立管理员入口和最小权限；不额外引入多集群、DevOps、Service Mesh 或扩展运行时能力；记录 UOS + Kubernetes + KubeSphere 组合状态。
+- **Validation:** KubeSphere 控制台、API、项目管理、监控入口正常；组件版本符合矩阵；UOS 1060e、Kubernetes v1.30.6 和 KubeSphere 候选组合通过实际安装验证后，才可提交 Frozen 评审。
 - **Expected Output:** KubeSphere 管理面及管理员访问 Runbook。
 - **Risk:** 管理面资源消耗影响 DA-SOC。
 - **Approval:** Platform Owner、Security Owner。
@@ -298,9 +315,9 @@
 ### TASK-018 — 安装并验证 Calico
 - **Objective:** 按 ADR-002 安装 Calico 作为唯一 CNI。
 - **Preconditions:** TASK-002、TASK-011、TASK-010 完成。
-- **Inputs:** Calico 版本/digest、Pod CIDR、网络 MTU、兼容矩阵。
-- **Actions:** 安装 Calico；配置 IPPool、MTU、Felix 基线和可观测指标；不安装 Cilium/Hubble/Tetragon。
-- **Validation:** Calico 节点和 Pod 健康；跨节点 Pod 通信、Service 通信和重启恢复通过；版本/digest 匹配。
+- **Inputs:** `VERSION-MATRIX.md` 中的 Calico 候选版本/digest、Pod CIDR、网络 MTU、兼容矩阵。
+- **Actions:** 在 Kubernetes/KubeSphere 候选组合上安装 Calico；配置 IPPool、MTU、Felix 基线和可观测指标；不安装 Cilium/Hubble/Tetragon；记录 Calico 与 UOS firewall/iptables/nftables 的实际兼容结果。
+- **Validation:** Calico 节点和 Pod 健康；跨节点 Pod 通信、Service 通信、NetworkPolicy 和重启恢复通过；版本/digest 匹配；组合状态仍保持 Candidate，直到完整验证门禁通过。
 - **Expected Output:** Calico manifests、健康报告、网络参数。
 - **Risk:** CNI 错误导致整个集群不可用。
 - **Approval:** Network Owner、Platform Owner。
@@ -459,7 +476,7 @@
 - **Objective:** 建立 V0.1 唯一指标、看板和告警栈。
 - **Preconditions:** TASK-015～021、版本矩阵冻结；节点资源已评估。
 - **Inputs:** KubeSphere/Prometheus stack 兼容版本、保留周期、TLS/RBAC。
-- **Actions:** 部署 Prometheus、Grafana、Alertmanager；配置持久化、保留周期、访问控制、录制规则和告警路由；不部署第二套指标系统。
+- **Actions:** 部署 Prometheus、Grafana、Alertmanager；配置持久化、保留周期、访问控制、录制规则和告警路由；不部署第二套指标系统；预留 CLM discovery freshness、vulnerability freshness、unknown version 和 upgrade closure 指标。
 - **Validation:** Kubernetes、节点、PVC、DA-SOC service metrics 可采集；Grafana 登录/RBAC；Alertmanager 路由可见。
 - **Expected Output:** 指标栈 manifests、初始 dashboards 和规则。
 - **Risk:** 观测栈占满 Local PV 或告警不可用。
@@ -559,7 +576,7 @@
 - **Objective:** 为短生命周期 Agent Job 建立最小权限和人工审批边界。
 - **Preconditions:** TASK-035 完成；Runbook 和 Task 模型已确定。
 - **Inputs:** Baseline AI Ops、可执行 Runbook 白名单、审批人名单。
-- **Actions:** 创建只读观察 ServiceAccount；为 L1 仅绑定批准 Runbook 的窄 Role；L2 需人工审批、短时凭据和双人确认；禁止修改 RBAC/NetworkPolicy/StorageClass/节点/etcd/PVC/业务数据；设置 activeDeadline/TTL/resources。
+- **Actions:** 创建只读观察 ServiceAccount；为 L1 仅绑定批准 Runbook 的窄 Role；L2 需人工审批、短时凭据和双人确认；禁止修改 RBAC/NetworkPolicy/StorageClass/节点/etcd/PVC/业务数据；设置 activeDeadline/TTL/resources；CLM Job 默认只发现和生成 Task，不得自动执行生产升级。
 - **Validation:** Job 只能读取批准对象；未批准动作被拒绝；L2 无审批不能执行；Job 完成后无常驻控制通道。
 - **Expected Output:** Agent RBAC、分级矩阵、审批 Runbook。
 - **Risk:** Agent 越权或执行不可逆动作。
@@ -907,7 +924,7 @@
 - **Objective:** 建立短生命周期 Agent Job 的最小执行框架。
 - **Preconditions:** TASK-004、TASK-036、TASK-042、TASK-059 完成；Agent image digest 已冻结。
 - **Inputs:** Task YAML/Markdown schema、Job template、L0/L1/L2 policy、审批渠道。
-- **Actions:** 定义 Task ID、触发事件、观察证据、分析、计划、风险等级、审批、执行步骤、验证、回滚和审计字段；Job 使用固定 digest、独立 SA、deadline、TTL、资源限制；Task 进入 Git，审批后才创建 Job。
+- **Actions:** 定义 Task ID、触发事件、观察证据、分析、计划、风险等级、审批、执行步骤、验证、回滚和审计字段；Job 使用固定 digest、独立 SA、deadline、TTL、资源限制；Task 进入 Git，审批后才创建 Job；把 CLM 的 `component_id`、current/target version、digest、CVE/KEV/EOL、upgrade_reason 和 compatibility evidence 纳入 Task。
 - **Validation:** L0 可自动创建只读 Job；L1 无白名单被拒；L2 无人工审批不创建/不执行；完成后 Job 清理且审计可查。
 - **Expected Output:** Task schema、Job template、审批 Runbook、审计格式。
 - **Risk:** Agent 变成常驻高权控制器或执行未批准动作。
@@ -915,7 +932,7 @@
 - **Rollback:** 禁止创建新 Job，撤销 Agent RBAC；保留已完成审计。
 - **Evidence:** Task 示例、Job YAML、权限/审批测试、审计记录。
 - **Dependencies:** TASK-004、TASK-036、TASK-042。
-- **Definition of Done:** Observe→Task→Approval→Job 的最小框架可运行。
+- **Definition of Done:** Observe→Task→Approval→Job 的最小框架可运行，且能承载 CLM 升级 Task 而不绕过 L0/L1/L2。
 
 ### TASK-061 — 实现 CrashLoopBackOff 真实闭环
 - **Objective:** 完成至少一个真实 Observe→Analyze→Plan→Task→Approval→Execute→Verify→Audit→Rollback 闭环。
@@ -1007,7 +1024,7 @@
 
 ### TASK-067 — 执行架构、业务、安全、恢复综合验收
 - **Objective:** 对照 Baseline、ADR 和 V0.1 Scope 做最终验收。
-- **Preconditions:** TASK-059、TASK-063、TASK-064～066 完成；所有 Critical/High 风险已关闭或有批准例外。
+- **Preconditions:** TASK-059、TASK-063、TASK-064～066、TASK-CLM-006 完成；所有 Critical/High 风险已关闭或有批准例外。
 - **Inputs:** Baseline、ADR、全部任务证据、Cutover/Restore/Rollback、风险和依赖清单。
 - **Actions:** 检查 VM 拓扑、K8s/KubeSphere/Calico、Harbor、Local PV、观测、备份、安全、DA-SOC、单活、AI Ops、IT/Business Boundary 和 V0.1 Non-Goals；逐项标记 PASS/FAIL/EXCEPTION。
 - **Validation:** 任何未满足的硬约束均阻断验收；`TODO.md` 未被修改；没有未批准新增组件。
@@ -1016,12 +1033,12 @@
 - **Approval:** Architecture/Platform Owner、Security Owner、DA-SOC Owner、Business Owner。
 - **Rollback:** FAIL 时保持现状或回退生产，禁止宣布 V0.1 完成。
 - **Evidence:** 签署报告、任务索引、审计、restore/cutover 证据。
-- **Dependencies:** TASK-056、TASK-059、TASK-063～066。
+- **Dependencies:** TASK-056、TASK-059、TASK-063～066、TASK-CLM-006。
 - **Definition of Done:** 所有硬门禁 PASS，例外有 Owner、期限和补救任务。
 
 ### TASK-068 — 交付实施基线、运维交接和关闭 V0.1
 - **Objective:** 将可运行平台和证据正式交接，并冻结后续演进入口。
-- **Preconditions:** TASK-067 PASS；Business Owner 接受生产结果。
+- **Preconditions:** TASK-067 PASS；TASK-CLM-006 已完成；Business Owner 接受生产结果。
 - **Inputs:** Final Acceptance、Git commit、运行/恢复/回退/安全/AI Ops Runbook、版本矩阵。
 - **Actions:** 交付最终 manifests、版本/digest、备份索引、监控 dashboard、告警路由、RBAC/Policy、DA-SOC workflow artifact、Task/Incident 记录和已知风险；登记 V0.2 backlog（xw-opsapi 评估、HA、多副本存储、Task CRD 等）但不实施；关闭本阶段变更。
 - **Validation:** 新工程师/Agent 只使用 README + Baseline + ADR + `09-implementation/` 可定位运行、验证、回退和恢复入口；所有交付文件可从 Git checkout 重现。
@@ -1030,8 +1047,94 @@
 - **Approval:** Platform Owner、Governance Owner、DA-SOC Owner、Business Owner。
 - **Rollback:** 交接发现缺失时回到 TASK-067，不关闭变更；生产回退仍按正式 Runbook。
 - **Evidence:** Git tag/commit、交接清单、培训/演练记录、Owner 签收。
-- **Dependencies:** TASK-067。
+- **Dependencies:** TASK-067、TASK-CLM-006。
 - **Definition of Done:** V0.1 运行、恢复、审计和交接资料完整，后续工作不改变本 Baseline。
+
+## 20A. Component Lifecycle Management
+
+### TASK-CLM-001 — 建立 Component Registry Schema
+- **Objective:** 在 Git 中建立 CLM 的组件身份、期望版本、Owner、关键性、发现方式和生命周期字段。
+- **Preconditions:** TASK-004、TASK-005 完成；版本矩阵和 Baseline 可读取。
+- **Inputs:** `07-aiops/component-lifecycle/components.yaml`、`VERSION-MATRIX.md`、Baseline、组件 Owner 清单。
+- **Actions:** 维护 UOS、Kubernetes、KubeSphere、containerd、Calico、Harbor、ClickHouse、n8n、render/archive、Prometheus、Grafana、Alertmanager、Fluent Bit、Loki 和生产镜像条目；分离 desired、discovery、security、lifecycle、upgrade、audit 状态。
+- **Validation:** 每个受管组件都有唯一 `component_id`、Owner、environment、criticality、discovery method 和 approval boundary；未知字段不被默认为安全。
+- **Expected Output:** Git Registry schema、组件清单、字段校验规则。
+- **Risk:** 组件漏登记或三类状态混成单一手工版本字段。
+- **Approval:** Platform Owner、Security Owner、DA-SOC Owner、Observability Owner。
+- **Rollback:** 恢复到上一版 Registry；不删除历史 discovery evidence。
+- **Evidence:** YAML 校验、组件覆盖清单、Owner 签字。
+- **Dependencies:** TASK-004、TASK-005。
+- **Definition of Done:** Registry 覆盖 V0.1 所有平台、DA-SOC、镜像和观测组件。
+
+### TASK-CLM-002 — 实现组件版本和 Digest Discovery
+- **Objective:** 自动发现实际运行版本、镜像 repository/tag/digest 和采集时间。
+- **Preconditions:** TASK-CLM-001 完成；只读 Kubernetes API、Harbor API 和节点观察权限可用。
+- **Inputs:** `components.yaml` discovery method、Kubernetes API、Harbor API、节点命令、ClickHouse/n8n/观测 API。
+- **Actions:** 使用组件专用 discovery method；Kubernetes/KubeSphere 读取 API 和 workload；UOS 读取 `/etc/os-release`、`uname`、RPM metadata；containerd 读取 CRI/package；Calico 读取 API/CRD/Pod image；镜像同时记录 tag 和 digest；结果写入受控 evidence artifact。
+- **Validation:** 运行态版本不由人工填写；unknown version 明确标记并产生风险；digest 与实际 workload 一致；Discovery freshness 可查询。
+- **Expected Output:** 短生命周期 discovery Job、结果 artifact、采集日志和失败告警。
+- **Risk:** 错误版本或 tag 漂移导致错误升级判断。
+- **Approval:** Platform Owner、Security Owner、Registry Owner。
+- **Rollback:** 停止 discovery Job，不修改生产 workload；保留最近一次有效 evidence。
+- **Evidence:** API 输出、节点命令、镜像 digest、采集时间和 hash。
+- **Dependencies:** TASK-CLM-001、TASK-011、TASK-015、TASK-018、TASK-027。
+- **Definition of Done:** V0.1 组件可自动发现；无法发现的组件进入 `unknown_version` 高风险状态。
+
+### TASK-CLM-003 — 建立 Vulnerability 和 Lifecycle State
+- **Objective:** 记录 CVE/CVSS/KEV、实际受影响状态、修复版本、EOL/EOS 和来源新鲜度。
+- **Preconditions:** TASK-CLM-002 完成；厂商公告、CVE/NVD/CNVD/CNNVD、CISA KEV 或离线数据入口已确认。
+- **Inputs:** Discovery evidence、漏洞/厂商数据、组件支持策略、离线导入清单。
+- **Actions:** 建立 Vulnerability State；记录 source、last_updated、CVE、CVSS、KEV、affected、fixed_version、EOL/EOS 和证据；数据过期标记 REVIEW；禁止因数据缺失生成“无漏洞”结论。
+- **Validation:** Critical/High/KEV/EOL/非受影响样例均能被正确记录；离线数据保留来源和导入时间；敏感信息不入状态或日志。
+- **Expected Output:** vulnerability/lifecycle state artifact、数据源清单、过期告警。
+- **Risk:** 漏洞数据陈旧、误报或把未知当安全。
+- **Approval:** Security Owner、Platform Owner。
+- **Rollback:** 回退到上一份带来源的状态 artifact；标记数据过期而非删除证据。
+- **Evidence:** source、last_updated、评估结果、CVE/KEV/EOL 对照表。
+- **Dependencies:** TASK-CLM-002、TASK-013、TASK-030。
+- **Definition of Done:** Vulnerability State 可解释、可追溯，且 Unknown Version Count 可观测。
+
+### TASK-CLM-004 — 实现 Upgrade Policy 和优先级计算
+- **Objective:** 将安全、生命周期和实际受影响状态转换为可解释的升级判断。
+- **Preconditions:** TASK-CLM-003 完成；`policies.yaml`、`upgrade-rules.yaml` 已评审。
+- **Inputs:** Vulnerability State、Component Registry、升级规则、P0/P1/P2/P3 和 L0/L1/L2 策略。
+- **Actions:** 实现 Critical/High/KEV/EOL/EOS、affected=false、unknown_version、修复版本和核心组件规则；输出 `upgrade_required`、`upgrade_reason`、priority、target_version、approval_required、status 和 deadline；不得把“存在 CVE”机械等同于升级。
+- **Validation:** 每个判断可回放；Critical/KEV/EOL/受影响 High 命中对应优先级；affected=false 为 REVIEW；生产升级始终需要 L2 审批。
+- **Expected Output:** policy evaluation artifact、规则测试报告、DingTalk/告警输入。
+- **Risk:** 误升级或漏升级造成生产中断或安全暴露。
+- **Approval:** Security Owner、Platform Owner、受影响组件 Owner。
+- **Rollback:** 恢复上一版规则并重新计算；不撤销已批准但未执行的 Task。
+- **Evidence:** 输入状态、规则版本、计算结果、审批边界。
+- **Dependencies:** TASK-CLM-003、TASK-036。
+- **Definition of Done:** 升级判断带有可读原因和优先级，且规则不执行任何升级动作。
+
+### TASK-CLM-005 — 生成 Git Upgrade Task 和审批链
+- **Objective:** 将需要升级的组件生成可审查、可回退、可验证的 Git Task。
+- **Preconditions:** TASK-CLM-004 完成；Git 分支保护、Task schema、Runbook 和 Owner 已就绪。
+- **Inputs:** Upgrade State、current/target version、digest、CVE/KEV/EOL、兼容矩阵、升级 Runbook。
+- **Actions:** 生成包含原因、影响、目标版本、兼容性检查、备份、审批、执行、验证、回滚和截止时间的 Task；根据 L0/L1/L2 路由；L0 自动创建只读/报告 Task，L1 仅白名单和非生产，L2 需人工审批；不自动升级生产。
+- **Validation:** Task 可从 Git commit 追溯到 discovery evidence；审批前不能创建升级 Job；高风险组件包含回滚和恢复证据要求。
+- **Expected Output:** Git Upgrade Task、PR/审批记录、DingTalk 通知、审计关联。
+- **Risk:** 自动生成不完整 Task 或绕过人工审批。
+- **Approval:** Governance Owner、Security Owner、Platform Owner、受影响组件 Owner。
+- **Rollback:** 关闭/回退未执行 Task；保留原因和审批审计。
+- **Evidence:** Git commit、Task diff、审批、通知和依赖检查。
+- **Dependencies:** TASK-CLM-004、TASK-060。
+- **Definition of Done:** 每个 `upgrade_required=true` 状态都有可执行或明确阻塞的 Git Task。
+
+### TASK-CLM-006 — 执行受控升级验证、审计和回退
+- **Objective:** 在验证环境或批准的低风险范围完成升级闭环。
+- **Preconditions:** TASK-CLM-005 已批准；备份、兼容性、验证和回退 Runbook 已通过评审。
+- **Inputs:** Approved Upgrade Task、固定镜像 digest/包、备份点、验证脚本、L1/L2 审批。
+- **Actions:** L1 仅在验证环境或白名单 Runbook 执行；L2 在人工批准窗口执行；升级前生成 backup/checkpoint，执行后自动重新 discovery、健康检查、业务 golden test、漏洞复评和日志/指标验证；失败时进入 Rollback。
+- **Validation:** 当前版本变为目标版本；digest、节点、NetworkPolicy、Harbor、DA-SOC、观测和恢复状态通过；失败不留下半完成变更；Task 关闭或标记 rolled-back。
+- **Expected Output:** upgrade/verify/rollback evidence、关闭 Task、审计记录、KPI 更新。
+- **Risk:** 兼容性问题、数据损坏、业务中断或回退失败。
+- **Approval:** L1 组件 Owner；L2 Platform/Security/Business/组件 Owner 按策略共同批准。
+- **Rollback:** 按组件 Runbook 恢复旧版本、旧 digest 或备份；冻结后续升级并创建 Incident。
+- **Evidence:** pre/post discovery、备份 hash、验证结果、审批、Task 状态和回退时间线。
+- **Dependencies:** TASK-CLM-005、TASK-040、TASK-055、TASK-061。
+- **Definition of Done:** 至少一个非生产/验证组件完成一次受控升级验证；生产自动升级保持禁用。
 
 ## 21. Dependency Graph
 
@@ -1056,6 +1159,10 @@ TASK-053 ─> TASK-054 ─> TASK-055 ─> TASK-056
 TASK-057 ─> TASK-058 ─> TASK-059
 TASK-060 ─> TASK-061 ─> TASK-062 ─> TASK-063
 TASK-064/TASK-065/TASK-066 ─> TASK-067 ─> TASK-068
+
+TASK-004/TASK-005 ─> TASK-CLM-001 ─> TASK-CLM-002 ─> TASK-CLM-003
+TASK-CLM-003 ─> TASK-CLM-004 ─> TASK-CLM-005 ─> TASK-CLM-006
+TASK-CLM-006 ─> TASK-067 ─> TASK-068
 ```
 
 并行原则：同一阶段中无数据依赖的任务可以并行，但不得绕过安全、备份、证据和审批门禁。所有生产切换任务严格串行。
@@ -1077,6 +1184,10 @@ TASK-064/TASK-065/TASK-066 ─> TASK-067 ─> TASK-068
 | 运维 DingTalk 告警入口 | Platform/Observability Owner | TASK-032 | 告警送达记录 |
 | 不可变/离线备份介质 | Backup Owner | TASK-038～041/064～066 | 副本、hash、恢复记录 |
 | L2 审批人和生产切换窗口 | Platform/Business Owner | TASK-036/055～059/061 | 审批表和窗口确认 |
+| CLM 只读发现权限和 Job 执行边界 | Platform/Security Owner | TASK-CLM-001 | API/RBAC/审计验证 |
+| 漏洞、KEV、EOL 数据源或离线导入 | Security Owner | TASK-CLM-003 | Source、Last Updated、导入 hash |
+| CLM Git 审批和升级 Runbook | Governance/Platform Owner | TASK-CLM-004 | 分支保护、审批人、回退路径 |
+| 升级验证环境、备份点和维护窗口 | Platform/Backup/Component Owner | TASK-CLM-005 | validation evidence、backup hash、窗口 |
 
 ## 23. Risks
 
@@ -1086,6 +1197,7 @@ TASK-064/TASK-065/TASK-066 ─> TASK-067 ─> TASK-068
 - 生产邮箱误 Mark as Read/删除/修改、ECS/K8s 双消费、重复 DingTalk、archive 熔断失效。
 - Secret 丢失或进入日志、Agent 越权、审计缺失、资源/磁盘耗尽。
 - 备份文件存在但无法恢复、切换后无法回退、恢复顺序错误和数据/图片不一致。
+- CLM 版本发现过期、镜像 tag/digest 不一致、漏洞误判、未知版本被当作安全或升级 Task 绕过审批。
 
 风险处置规则：Critical 风险必须立即停止受影响任务；High 风险必须有批准的缓解、监控和回退；任何 Architecture Blocker 必须提交架构 Owner，不在实施阶段自行裁决。
 
@@ -1104,6 +1216,7 @@ V0.1 只有在以下条件全部满足后才算完成：
 9. Cutover Gate 全部通过；生产切换后只有 K8s n8n 单活消费，ECS 只保留短期回退能力；回退路径已实演。
 10. 至少一个 CrashLoopBackOff AI Ops 闭环完成 Observe→Analyze→Plan→Task→Approval→Execute→Verify→Audit→Rollback；Agent 使用 Job 且最小 RBAC。
 11. 所有任务有 Validation、Evidence、Approval、Rollback 和 Owner；所有关键风险、外部依赖和例外均登记。
-12. 最终验收和交接完成，V0.2/V1.0 事项只进入演进清单，不提前进入 V0.1；`TODO.md` 未修改。
+12. CLM 已覆盖 V0.1 组件，版本/digest 可自动发现，CVE/KEV/EOL 状态可追溯，升级判断可解释，Git Task/审批/验证/审计/回退闭环通过；生产自动升级保持禁用。
+13. 最终验收和交接完成，V0.2/V1.0 事项只进入演进清单，不提前进入 V0.1；根 `TODO.md` 是唯一实施任务源，未创建第二份 TODO。
 
-> **执行停止条件：** 当 `TASK-068` 完成后停止本阶段工作，不直接开始新的 Kubernetes 实施或生成新的架构；后续实施只能依据本清单、Baseline 和 ADR 通过变更流程推进。
+> **执行停止条件：** 当 `TASK-CLM-006`、`TASK-067` 和 `TASK-068` 完成后停止本阶段工作，不直接开始新的 Kubernetes 实施或生成新的架构；后续实施只能依据本清单、Baseline 和 ADR 通过变更流程推进。

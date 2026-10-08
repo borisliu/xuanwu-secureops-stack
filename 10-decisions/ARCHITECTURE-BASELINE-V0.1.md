@@ -430,6 +430,12 @@ audit:
 
 `da-soc-render` CrashLoopBackOff：告警 → n8n 创建 Task → Agent Job 收集 K8s/Prometheus/Loki 证据 → 判断 L1/L2 → 受限重启或请求审批 → 健康探针和 n8n→render 连通性验证 → 失败则 rollout undo/升级人工 → Task 和审计完成。
 
+### 16.5 Component Lifecycle Management
+
+V0.1 纳入组件生命周期管理（CLM）最小闭环，但不建设独立漏洞平台或自动 Patch Management 平台。CLM 的 Git Source of Truth 位于 `07-aiops/component-lifecycle/`，由 `components.yaml`、`policies.yaml` 和 `upgrade-rules.yaml` 分别维护 Component Registry、升级/审批策略和 `upgrade_required` 规则。
+
+CLM Agent Job 按组件类型发现当前版本、运行状态、镜像 repository/tag/digest、CVE/CVSS/KEV/EOL 和来源时间；未知版本必须进入高风险 REVIEW。CLM 可以生成 Git Upgrade Task、通知、审计、验证和回退，但生产升级、Kubernetes/KubeSphere/Calico/Harbor/OS/ClickHouse/节点/存储/网络/RBAC 变更必须遵守 L2 人工审批；V0.1 禁止生产自动升级、自动 Kubernetes minor/major upgrade 和自动 OS upgrade。
+
 ## 17. Human / AI Boundary
 
 | 能力 | 人 | AI |

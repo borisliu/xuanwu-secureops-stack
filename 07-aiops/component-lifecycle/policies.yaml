@@ -1,0 +1,55 @@
+﻿schema_version: "0.1"
+source_of_truth: git
+policies:
+  - id: platform-core
+    component_types: [os, platform, runtime, cni, registry]
+    default_priority: P1
+    approval_level: L2
+    production_auto_upgrade: false
+    validation_runbook: platform-upgrade-validation
+  - id: da-soc-core
+    component_types: [database, workflow, business-service]
+    default_priority: P1
+    approval_level: L2
+    production_auto_upgrade: false
+    validation_runbook: da-soc-upgrade-validation
+  - id: observability
+    component_types: [observability, logging]
+    default_priority: P2
+    approval_level: L2
+    production_auto_upgrade: false
+    validation_runbook: observability-upgrade-validation
+  - id: non-production
+    environment: [validation, test]
+    default_priority: P2
+    approval_level: L1
+    production_auto_upgrade: false
+    validation_runbook: generic-workload-upgrade-validation
+
+approval_rules:
+  - condition: "priority in [P0, P1]"
+    level: L2
+    required_approvers: [platform-owner, security-owner, affected-component-owner]
+  - condition: "component in [kubernetes, kubesphere, calico, harbor, os, clickhouse]"
+    level: L2
+    required_approvers: [platform-owner, security-owner, affected-component-owner]
+  - condition: "environment == production"
+    level: L2
+    required_approvers: [platform-owner, business-owner, affected-component-owner]
+  - condition: "environment in [validation, test] and rollback_capable == true"
+    level: L1
+    required_approvers: [component-owner]
+
+freshness:
+  discovery_max_age_hours: 24
+  vulnerability_max_age_hours: 168
+  stale_state: REVIEW
+
+sources:
+  - vendor-security-advisory
+  - cve
+  - nvd
+  - cnvd
+  - cnnvd
+  - cisa-kev
+  - offline-import
